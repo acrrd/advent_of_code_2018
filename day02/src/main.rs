@@ -30,12 +30,35 @@ fn checksum(codes: &str) -> u32 {
     oc.get(&2).unwrap_or(&0) * oc.get(&3).unwrap_or(&0)
 }
 
+fn common_chars(a: &str, b: &str) -> String {
+    a.chars()
+        .zip(b.chars())
+        .filter(|(ac, bc)| ac == bc)
+        .map(|(a, _)| a)
+        .collect()
+}
+
+fn find_codes_common_chars(codes: &str) -> String {
+    use itertools::Itertools;
+
+    codes
+        .lines()
+        .cartesian_product(codes.lines().skip(1))
+        .map(|(a, b)| (a, common_chars(a, b)))
+        .filter(|(a, b)| a.len() - 1 == b.len())
+        .map(|(_, b)| b)
+        .nth(0)
+        .unwrap()
+        .to_string()
+}
+
 fn main() -> io::Result<()> {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input)?;
     let input = input;
 
     println!("{}", checksum(&input));
+    println!("{}", find_codes_common_chars(&input));
 
     Ok(())
 }
@@ -45,7 +68,9 @@ mod tests {
     use std::collections::HashSet;
     use std::iter::FromIterator;
 
-    use super::{checksum, code_occurrences, codes_occurrences_count};
+    use super::{
+        checksum, code_occurrences, codes_occurrences_count, common_chars, find_codes_common_chars,
+    };
 
     #[test]
     fn test_code_occurrences() {
@@ -86,5 +111,34 @@ mod tests {
     #[test]
     fn test_checksum() {
         assert_eq!(checksum(CODES), 12);
+    }
+
+    #[test]
+    fn test_common_chars() {
+        let tests: Vec<(&str, &str, &str)> = vec![
+            ("asdf", "asdf", "asdf"),
+            ("asdf", "asdg", "asd"),
+            ("asdf", "asgf", "asf"),
+            ("asdf", "agdf", "adf"),
+            ("asdf", "gsdf", "sdf"),
+            ("asdf", "zzzz", ""),
+        ];
+
+        tests.iter().for_each(|(a, b, t)| {
+            assert_eq!(common_chars(a, b), t.to_string());
+        })
+    }
+
+    #[test]
+    fn test_find_codes_common_chars() {
+        let codes: &str = "abcde\n\
+                           fghij\n\
+                           klmno\n\
+                           pqrst\n\
+                           fguij\n\
+                           axcye\n\
+                           wvxyz";
+
+        assert_eq!(find_codes_common_chars(codes), "fgij".to_string());
     }
 }
