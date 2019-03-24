@@ -33,6 +33,10 @@ fn parse_claim(line: &str) -> Claim {
     Claim::new(id, cords[0], cords[1], dims[0], dims[1])
 }
 
+fn parse_claims(claimsstr: &str) -> Vec<Claim> {
+    claimsstr.lines().map(parse_claim).collect()
+}
+
 fn register_claim(reg: HashMap<(u32, u32), u32>, claim: &Claim) -> HashMap<(u32, u32), u32> {
     use itertools::Itertools;
 
@@ -47,14 +51,15 @@ fn register_claim(reg: HashMap<(u32, u32), u32>, claim: &Claim) -> HashMap<(u32,
 }
 
 fn register_claims(claimsstr: &str) -> HashMap<(u32, u32), u32> {
-    claimsstr
-        .lines()
-        .map(parse_claim)
-        .fold(HashMap::new(), |r, c| register_claim(r, &c))
+    parse_claims(claimsstr).iter().fold(HashMap::new(), |r, c| register_claim(r, &c))
 }
 
 fn count_overlapping_claims(claimstr: &str) -> u32 {
-    register_claims(claimstr).values().filter(|n| **n > 1).map(|_| 1).sum()
+    register_claims(claimstr)
+        .values()
+        .filter(|n| **n > 1)
+        .map(|_| 1)
+        .sum()
 }
 
 fn main() -> io::Result<()> {
