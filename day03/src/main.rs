@@ -50,31 +50,33 @@ fn register_claim(reg: HashMap<(u32, u32), u32>, claim: &Claim) -> HashMap<(u32,
         })
 }
 
-fn register_claims(claimsstr: &str) -> HashMap<(u32, u32), u32> {
-    parse_claims(claimsstr).iter().fold(HashMap::new(), |r, c| register_claim(r, &c))
+fn register_claims(claims: &Vec<Claim>) -> HashMap<(u32, u32), u32> {
+    claims
+        .iter()
+        .fold(HashMap::new(), |r, c| register_claim(r, &c))
 }
 
-fn count_overlapping_claims(claimstr: &str) -> u32 {
-    register_claims(claimstr)
-        .values()
-        .filter(|n| **n > 1)
-        .map(|_| 1)
-        .sum()
+fn count_overlapping_claims(reg: &HashMap<(u32, u32), u32>) -> u32 {
+    reg.values().filter(|n| **n > 1).map(|_| 1).sum()
 }
 
 fn main() -> io::Result<()> {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input)?;
     let input = input;
+    let claims = parse_claims(&input);
+    let register = register_claims(&claims);
 
-    println!("{}", count_overlapping_claims(&input));
+    println!("{}", count_overlapping_claims(&register));
 
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{count_overlapping_claims, parse_claim, register_claim, register_claims, Claim};
+    use super::{
+        count_overlapping_claims, parse_claim, parse_claims, register_claim, register_claims, Claim,
+    };
     use std::collections::HashMap;
 
     #[test]
@@ -207,7 +209,7 @@ mod tests {
                       #2 @ 3,1: 4x4\n\
                       #3 @ 5,5: 2x2";
 
-        let result = register_claims(claims);
+        let result = register_claims(&parse_claims(claims));
 
         vec![
             Claim::new(1, 1, 3, 2, 4),
@@ -241,6 +243,8 @@ mod tests {
                       #2 @ 3,1: 4x4\n\
                       #3 @ 5,5: 2x2";
 
-        assert_eq!(count_overlapping_claims(claims), 4);
+        let result = register_claims(&parse_claims(claims));
+
+        assert_eq!(count_overlapping_claims(&result), 4);
     }
 }
