@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::collections::HashMap;
 use std::io::{self, Read};
 
@@ -38,8 +39,6 @@ fn parse_claims(claimsstr: &str) -> Vec<Claim> {
 }
 
 fn register_claim(reg: HashMap<(u32, u32), u32>, claim: &Claim) -> HashMap<(u32, u32), u32> {
-    use itertools::Itertools;
-
     (0..claim.w)
         .into_iter()
         .cartesian_product(0..claim.h)
@@ -60,6 +59,19 @@ fn count_overlapping_claims(reg: &HashMap<(u32, u32), u32>) -> u32 {
     reg.values().filter(|n| **n > 1).map(|_| 1).sum()
 }
 
+fn find_non_overlapping_claim(claims: &Vec<Claim>, reg: &HashMap<(u32, u32), u32>) -> u32 {
+    claims
+        .iter()
+        .find(|claim| {
+            (0..claim.w)
+                .into_iter()
+                .cartesian_product(0..claim.h)
+                .all(|(x, y)| *reg.get(&(claim.x + x, claim.y + y)).unwrap() == 1)
+        })
+        .unwrap()
+        .id
+}
+
 fn main() -> io::Result<()> {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input)?;
@@ -68,6 +80,7 @@ fn main() -> io::Result<()> {
     let register = register_claims(&claims);
 
     println!("{}", count_overlapping_claims(&register));
+    println!("{}", find_non_overlapping_claim(&claims, &register));
 
     Ok(())
 }
@@ -75,7 +88,8 @@ fn main() -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{
-        count_overlapping_claims, parse_claim, parse_claims, register_claim, register_claims, Claim,
+        count_overlapping_claims, find_non_overlapping_claim, parse_claim, parse_claims,
+        register_claim, register_claims, Claim,
     };
     use std::collections::HashMap;
 
@@ -246,5 +260,16 @@ mod tests {
         let result = register_claims(&parse_claims(claims));
 
         assert_eq!(count_overlapping_claims(&result), 4);
+    }
+
+    #[test]
+    fn test_find_non_overlapping_claim() {
+        let input = "#1 @ 1,3: 4x4\n\
+                     #2 @ 3,1: 4x4\n\
+                     #3 @ 5,5: 2x2";
+        let claims = parse_claims(input);
+        let reg = register_claims(&claims);
+
+        assert_eq!(find_non_overlapping_claim(&claims, &reg), 3);
     }
 }
