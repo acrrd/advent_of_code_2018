@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::{self, Read};
 
 #[derive(Debug, PartialEq)]
 struct Claim {
@@ -52,11 +53,23 @@ fn register_claims(claimsstr: &str) -> HashMap<(u32, u32), u32> {
         .fold(HashMap::new(), |r, c| register_claim(r, &c))
 }
 
-fn main() {}
+fn count_overlapping_claims(claimstr: &str) -> u32 {
+    register_claims(claimstr).values().filter(|n| **n > 1).map(|_| 1).sum()
+}
+
+fn main() -> io::Result<()> {
+    let mut input = String::new();
+    std::io::stdin().read_to_string(&mut input)?;
+    let input = input;
+
+    println!("{}", count_overlapping_claims(&input));
+
+    Ok(())
+}
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_claim, register_claim, register_claims, Claim};
+    use super::{count_overlapping_claims, parse_claim, register_claim, register_claims, Claim};
     use std::collections::HashMap;
 
     #[test]
@@ -215,5 +228,14 @@ mod tests {
                 println!("{:?} {}", cord, claims_n);
                 assert_eq!(result.get(cord).unwrap(), claims_n);
             });
+    }
+
+    #[test]
+    fn test_count_overlapping_claims() {
+        let claims = "#1 @ 1,3: 4x4\n\
+                      #2 @ 3,1: 4x4\n\
+                      #3 @ 5,5: 2x2";
+
+        assert_eq!(count_overlapping_claims(claims), 4);
     }
 }
