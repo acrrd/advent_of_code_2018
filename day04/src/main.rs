@@ -208,7 +208,7 @@ mod tests {
         );
     }
 
-    const example_input: &str = "[1518-11-01 00:00] Guard #10 begins shift\n\
+    const EXAMPLE_INPUT: &str = "[1518-11-01 00:00] Guard #10 begins shift\n\
                                  [1518-11-01 00:05] falls asleep\n\
                                  [1518-11-01 00:25] wakes up\n\
                                  [1518-11-01 00:30] falls asleep\n\
@@ -228,7 +228,7 @@ mod tests {
 
     #[test]
     fn test_get_guards_stats_two_guards() {
-        let guards = get_guards_stats(parse_events(example_input));
+        let guards = get_guards_stats(parse_events(EXAMPLE_INPUT));
         let (a, b) = (10, 99);
         assert!(guards.contains_key(&a));
         assert!(guards.contains_key(&b));
@@ -253,7 +253,7 @@ mod tests {
 
     #[test]
     fn test_find_sleepiest_gaurd() {
-        let guards = get_guards_stats(parse_events(example_input));
+        let guards = get_guards_stats(parse_events(EXAMPLE_INPUT));
         let guard = find_sleepiest_guard(&guards);
 
         assert_eq!(guard.id, 10);
@@ -261,7 +261,7 @@ mod tests {
 
     #[test]
     fn test_find_favourite_minute() {
-        let guards = get_guards_stats(parse_events(example_input));
+        let guards = get_guards_stats(parse_events(EXAMPLE_INPUT));
         let guard = find_sleepiest_guard(&guards);
 
         assert_eq!(find_favourite_minute(guard), 24);
