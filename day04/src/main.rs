@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::{self, Read};
 
 #[derive(PartialEq, Debug)]
 enum Event {
@@ -111,7 +112,19 @@ fn find_favourite_minute(guard: &Guard) -> u32 {
         .0 as u32
 }
 
-fn main() {}
+fn main() -> io::Result<()> {
+    let mut input = String::new();
+    std::io::stdin().read_to_string(&mut input)?;
+    let input = input;
+
+    let guards = get_guards_stats(parse_events(&input));
+    let guard = find_sleepiest_guard(&guards);
+    let minute = find_favourite_minute(guard);
+
+    println!("{}", guard.id * minute);
+
+    Ok(())
+}
 
 #[cfg(test)]
 mod tests {
