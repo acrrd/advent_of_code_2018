@@ -1,8 +1,24 @@
+use std::collections::HashMap;
+
 #[derive(PartialEq, Debug)]
 enum Event {
     Start(u32), // start of a shift
     Asleep(u8),
     Awake(u8),
+}
+
+struct Guard {
+    id: u32,
+    minutes_slept: [u32; 60],
+}
+
+impl Guard {
+    fn new(id: u32) -> Guard {
+        Guard {
+            id,
+            minutes_slept: [0; 60],
+        }
+    }
 }
 
 fn parse_guard_id(cs: Vec<&str>) -> u32 {
@@ -31,11 +47,58 @@ fn parse_events<'a>(input: &'a str) -> impl Iterator<Item = Event> + 'a {
     lines.into_iter().map(parse_event)
 }
 
+fn get_guards_stats(events: impl Iterator<Item = Event>) -> HashMap<u32, Guard> {
+    #[derive(Debug)]
+    enum State {
+        Init,
+        CurrentGuard(u32),
+        Asleep(u32, u8), // guard_id, minute
+    };
+
+    events
+        .fold(
+            (HashMap::new(), State::Init),
+            |(mut guards, state), e| match e {
+                Event::Start(id) => {
+                    guards.entry(id).or_insert(Guard::new(id));
+                    let next = match state {
+                        State::Init | State::CurrentGuard(_) => State::CurrentGuard(id),
+                        _ => panic!("Invalid state {:?} with event {:?}", state, e),
+                    };
+                    (guards, next)
+                }
+                Event::Asleep(minute) => {
+                    let next = match state {
+                        State::CurrentGuard(id) => State::Asleep(id, minute),
+                        _ => panic!("Invalid state {:?} with event {:?}", state, e),
+                    };
+                    (guards, next)
+                }
+                Event::Awake(end_minute) => {
+                    let next = match state {
+                        State::Asleep(id, begin_minute) => {
+                            let guard = guards
+                                .get_mut(&id)
+                                .expect(&format!("Cannot found Gaurd #{}", id));
+                            (begin_minute..end_minute).for_each(|minute| {
+                                guard.minutes_slept[minute as usize] += 1;
+                            });
+                            State::CurrentGuard(id)
+                        }
+                        _ => panic!("Invalid state {:?} with event {:?}", state, e),
+                    };
+                    (guards, next)
+                }
+            },
+        )
+        .0
+}
+
 fn main() {}
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_event, parse_events,Event};
+    use super::{get_guards_stats, parse_event, parse_events, Event};
 
     #[test]
     fn test_parse_event() {
@@ -59,5 +122,115 @@ mod tests {
         let expect = vec![Event::Start(10), Event::Asleep(5), Event::Awake(25)];
 
         assert_eq!(parse_events(input).collect::<Vec<Event>>(), expect);
+    }
+
+    fn check_minutes(minutes_slept: &[u32; 60], minutes: impl Iterator<Item = usize>, eq: u32) {
+        minutes.for_each(|minute| {
+            assert_eq!(minutes_slept[minute], eq);
+        });
+    }
+
+    #[test]
+    fn test_get_guards_stats_one_shift() {
+        let input = "[1518-11-01 00:00] Guard #10 begins shift\n\
+                     [1518-11-01 00:05] falls asleep\n\
+                     [1518-11-01 00:25] wakes up";
+        let guards = get_guards_stats(parse_events(input));
+        let id = 10;
+        assert!(guards.contains_key(&id));
+
+        let guard = guards.get(&id).unwrap();
+        assert_eq!(guard.id, id);
+        check_minutes(&guard.minutes_slept, 5..25, 1);
+        check_minutes(&guard.minutes_slept, (0..5).chain(25..60), 0);
+    }
+
+    fn test_get_guards_stats_two_shifts_common(input: &str) {
+        let guards = get_guards_stats(parse_events(input));
+        let id = 10;
+        assert!(guards.contains_key(&id));
+
+        let guard = guards.get(&id).unwrap();
+        assert_eq!(guard.id, id);
+        check_minutes(&guard.minutes_slept, (5..25).chain(40..50), 1);
+        check_minutes(&guard.minutes_slept, (0..5).chain(25..40).chain(50..60), 0);
+    }
+
+    #[test]
+    fn test_get_guards_stats_two_shifts_one_night() {
+        test_get_guards_stats_two_shifts_common(
+            "[1518-11-01 00:00] Guard #10 begins shift\n\
+             [1518-11-01 00:05] falls asleep\n\
+             [1518-11-01 00:25] wakes up\n\
+             [1518-11-01 00:40] falls asleep\n\
+             [1518-11-01 00:50] wakes up",
+        );
+    }
+
+    #[test]
+    fn test_get_guards_stats_two_shifts_two_night() {
+        test_get_guards_stats_two_shifts_common(
+            "[1518-11-01 00:00] Guard #10 begins shift\n\
+             [1518-11-01 00:05] falls asleep\n\
+             [1518-11-01 00:25] wakes up\n\
+             [1518-11-02 00:00] Guard #10 begins shift\n\
+             [1518-11-02 00:40] falls asleep\n\
+             [1518-11-02 00:50] wakes up",
+        );
+    }
+
+    #[test]
+    fn test_get_guards_stats_two_shifts_two_night_early_begin() {
+        test_get_guards_stats_two_shifts_common(
+            "[1518-11-01 00:00] Guard #10 begins shift\n\
+             [1518-11-01 00:05] falls asleep\n\
+             [1518-11-01 00:25] wakes up\n\
+             [1518-11-01 00:00] Guard #10 begins shift\n\
+             [1518-11-02 00:40] falls asleep\n\
+             [1518-11-02 00:50] wakes up",
+        );
+    }
+
+    #[test]
+    fn test_get_guards_stats_two_guards() {
+        let input = "[1518-11-01 00:00] Guard #10 begins shift\n\
+                     [1518-11-01 00:05] falls asleep\n\
+                     [1518-11-01 00:25] wakes up\n\
+                     [1518-11-01 00:30] falls asleep\n\
+                     [1518-11-01 00:55] wakes up\n\
+                     [1518-11-01 23:58] Guard #99 begins shift\n\
+                     [1518-11-02 00:40] falls asleep\n\
+                     [1518-11-02 00:50] wakes up\n\
+                     [1518-11-03 00:05] Guard #10 begins shift\n\
+                     [1518-11-03 00:24] falls asleep\n\
+                     [1518-11-03 00:29] wakes up\n\
+                     [1518-11-04 00:02] Guard #99 begins shift\n\
+                     [1518-11-04 00:36] falls asleep\n\
+                     [1518-11-04 00:46] wakes up\n\
+                     [1518-11-05 00:03] Guard #99 begins shift\n\
+                     [1518-11-05 00:45] falls asleep\n\
+                     [1518-11-05 00:55] wakes up";
+
+        let guards = get_guards_stats(parse_events(input));
+        let (a, b) = (10, 99);
+        assert!(guards.contains_key(&a));
+        assert!(guards.contains_key(&b));
+
+        {
+            let guard = guards.get(&a).unwrap();
+            assert_eq!(guard.id, a);
+            check_minutes(&guard.minutes_slept, (5..24).chain(25..29).chain(30..55), 1);
+            assert_eq!(guard.minutes_slept[24], 2);
+            check_minutes(&guard.minutes_slept, (0..5).chain(29..30).chain(55..60), 0);
+        }
+
+        {
+            let guard = guards.get(&b).unwrap();
+            assert_eq!(guard.id, b);
+            check_minutes(&guard.minutes_slept, (36..40).chain(50..55), 1);
+            check_minutes(&guard.minutes_slept, (40..45).chain(46..50), 2);
+            assert_eq!(guard.minutes_slept[45], 3);
+            check_minutes(&guard.minutes_slept, (0..36).chain(55..50), 0);
+        }
     }
 }
