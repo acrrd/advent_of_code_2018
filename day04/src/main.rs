@@ -102,14 +102,25 @@ fn find_sleepiest_guard(guards: &HashMap<u32, Guard>) -> &Guard {
         .expect("Cannot find a guard")
 }
 
-fn find_favourite_minute(guard: &Guard) -> u32 {
-    guard
+fn find_favourite_minute(guard: &Guard) -> (u32, u32) {
+    let (minute, times) = guard
         .minutes_slept
         .iter()
         .enumerate()
         .max_by_key(|&(_, times)| times)
-        .expect("Cannot find favourite minute")
-        .0 as u32
+        .expect("Cannot find favourite minute");
+
+    (minute as u32, *times)
+}
+
+fn find_frequent_minute(guards: &HashMap<u32, Guard>) -> (u32, u32) {
+    let (id, (minute, _)) = guards
+        .values()
+        .map(|guard| (guard.id, find_favourite_minute(guard)))
+        .max_by_key(|&(_, (_, times))| times)
+        .expect("Cannot find frequent minute");
+
+    (id, minute)
 }
 
 fn main() -> io::Result<()> {
@@ -119,16 +130,23 @@ fn main() -> io::Result<()> {
 
     let guards = get_guards_stats(parse_events(&input));
     let guard = find_sleepiest_guard(&guards);
-    let minute = find_favourite_minute(guard);
+    let (minute, _) = find_favourite_minute(guard);
 
     println!("{}", guard.id * minute);
+
+    let (guard_id, minute) = find_frequent_minute(&guards);
+    println!("{}", guard_id * minute);
 
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{find_favourite_minute, find_sleepiest_guard, get_guards_stats, parse_event, parse_events, Event};
+    use super::{
+        find_frequent_minute,
+        find_favourite_minute, find_sleepiest_guard, get_guards_stats, parse_event, parse_events,
+        Event,
+    };
 
     #[test]
     fn test_parse_event() {
@@ -277,6 +295,13 @@ mod tests {
         let guards = get_guards_stats(parse_events(EXAMPLE_INPUT));
         let guard = find_sleepiest_guard(&guards);
 
-        assert_eq!(find_favourite_minute(guard), 24);
+        assert_eq!(find_favourite_minute(guard).0, 24);
+    }
+
+    #[test]
+    fn test_find_frequent_minute() {
+        let guards = get_guards_stats(parse_events(EXAMPLE_INPUT));
+
+        assert_eq!(find_frequent_minute(&guards), (99, 45));
     }
 }
