@@ -94,11 +94,28 @@ fn get_guards_stats(events: impl Iterator<Item = Event>) -> HashMap<u32, Guard> 
         .0
 }
 
+fn find_sleepiest_guard(guards: &HashMap<u32, Guard>) -> &Guard {
+    guards
+        .values()
+        .max_by_key(|guard| guard.minutes_slept.iter().sum::<u32>())
+        .expect("Cannot find a guard")
+}
+
+fn find_favourite_minute(guard: &Guard) -> u32 {
+    guard
+        .minutes_slept
+        .iter()
+        .enumerate()
+        .max_by_key(|&(_, times)| times)
+        .expect("Cannot find favourite minute")
+        .0 as u32
+}
+
 fn main() {}
 
 #[cfg(test)]
 mod tests {
-    use super::{get_guards_stats, parse_event, parse_events, Event};
+    use super::{find_favourite_minute, find_sleepiest_guard, get_guards_stats, parse_event, parse_events, Event};
 
     #[test]
     fn test_parse_event() {
@@ -191,27 +208,27 @@ mod tests {
         );
     }
 
+    const example_input: &str = "[1518-11-01 00:00] Guard #10 begins shift\n\
+                                 [1518-11-01 00:05] falls asleep\n\
+                                 [1518-11-01 00:25] wakes up\n\
+                                 [1518-11-01 00:30] falls asleep\n\
+                                 [1518-11-01 00:55] wakes up\n\
+                                 [1518-11-01 23:58] Guard #99 begins shift\n\
+                                 [1518-11-02 00:40] falls asleep\n\
+                                 [1518-11-02 00:50] wakes up\n\
+                                 [1518-11-03 00:05] Guard #10 begins shift\n\
+                                 [1518-11-03 00:24] falls asleep\n\
+                                 [1518-11-03 00:29] wakes up\n\
+                                 [1518-11-04 00:02] Guard #99 begins shift\n\
+                                 [1518-11-04 00:36] falls asleep\n\
+                                 [1518-11-04 00:46] wakes up\n\
+                                 [1518-11-05 00:03] Guard #99 begins shift\n\
+                                 [1518-11-05 00:45] falls asleep\n\
+                                 [1518-11-05 00:55] wakes up";
+
     #[test]
     fn test_get_guards_stats_two_guards() {
-        let input = "[1518-11-01 00:00] Guard #10 begins shift\n\
-                     [1518-11-01 00:05] falls asleep\n\
-                     [1518-11-01 00:25] wakes up\n\
-                     [1518-11-01 00:30] falls asleep\n\
-                     [1518-11-01 00:55] wakes up\n\
-                     [1518-11-01 23:58] Guard #99 begins shift\n\
-                     [1518-11-02 00:40] falls asleep\n\
-                     [1518-11-02 00:50] wakes up\n\
-                     [1518-11-03 00:05] Guard #10 begins shift\n\
-                     [1518-11-03 00:24] falls asleep\n\
-                     [1518-11-03 00:29] wakes up\n\
-                     [1518-11-04 00:02] Guard #99 begins shift\n\
-                     [1518-11-04 00:36] falls asleep\n\
-                     [1518-11-04 00:46] wakes up\n\
-                     [1518-11-05 00:03] Guard #99 begins shift\n\
-                     [1518-11-05 00:45] falls asleep\n\
-                     [1518-11-05 00:55] wakes up";
-
-        let guards = get_guards_stats(parse_events(input));
+        let guards = get_guards_stats(parse_events(example_input));
         let (a, b) = (10, 99);
         assert!(guards.contains_key(&a));
         assert!(guards.contains_key(&b));
@@ -232,5 +249,21 @@ mod tests {
             assert_eq!(guard.minutes_slept[45], 3);
             check_minutes(&guard.minutes_slept, (0..36).chain(55..50), 0);
         }
+    }
+
+    #[test]
+    fn test_find_sleepiest_gaurd() {
+        let guards = get_guards_stats(parse_events(example_input));
+        let guard = find_sleepiest_guard(&guards);
+
+        assert_eq!(guard.id, 10);
+    }
+
+    #[test]
+    fn test_find_favourite_minute() {
+        let guards = get_guards_stats(parse_events(example_input));
+        let guard = find_sleepiest_guard(&guards);
+
+        assert_eq!(find_favourite_minute(guard), 24);
     }
 }
