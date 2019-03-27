@@ -19,6 +19,10 @@ fn polymer_react(cs: impl Iterator<Item = char>) -> Vec<char> {
     })
 }
 
+fn polymer_clean_react(cs: impl Iterator<Item = char>, todelete: char) -> Vec<char> {
+    polymer_react(cs.filter(|c| !c.eq_ignore_ascii_case(&todelete)))
+}
+
 fn main() -> io::Result<()> {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input)?;
@@ -29,12 +33,20 @@ fn main() -> io::Result<()> {
 
     println!("{}", units_n);
 
+    let units_n = (b'a'..b'z')
+        .map(char::from)
+        .map(|todelete| polymer_clean_react(line.clone(), todelete).len())
+        .min()
+        .unwrap();
+
+    println!("{}", units_n);
+
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{polymer_react, unit_react};
+    use super::{polymer_clean_react, polymer_react, unit_react};
 
     #[test]
     fn test_do_react() {
@@ -61,5 +73,20 @@ mod tests {
         assert_eq!(pr("abAB"), "abAB");
         assert_eq!(pr("aabAAB"), "aabAAB");
         assert_eq!(pr("dabAcCaCBAcCcaDA"), "dabCBAcaDA");
+    }
+
+    #[test]
+    fn test_polymer_clean_react() {
+        let pr = |s: &str, td: char| {
+            polymer_clean_react(s.chars(), td)
+                .into_iter()
+                .collect::<String>()
+        };
+
+        assert_eq!(pr("dbcCCBcCcDaA", 'a'), "dbCBcD");
+        assert_eq!(pr("daAcCaCAcCcaDA", 'b'), "daCAcaDA");
+        assert_eq!(pr("dabAaBAaDA", 'c'), "daDA");
+        assert_eq!(pr("abAcCaCBAcCcaA", 'd'), "abCBAc");
+
     }
 }
