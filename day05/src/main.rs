@@ -4,20 +4,19 @@ fn unit_react(a: char, b: char) -> bool {
     a != b && a.eq_ignore_ascii_case(&b)
 }
 
-fn polymer_react(p: &str) -> Vec<char> {
-    p.lines().nth(0).expect("No line to parse").chars()
-        .fold(Vec::new(), |mut us, u| {
-            match us.last() {
-                Some(top) if unit_react(*top, u) => {
-                    us.pop();
-                }
-                _ => {
-                    us.push(u);
-                }
-            };
+fn polymer_react(cs: impl Iterator<Item = char>) -> Vec<char> {
+    cs.fold(Vec::new(), |mut us, u| {
+        match us.last() {
+            Some(top) if unit_react(*top, u) => {
+                us.pop();
+            }
+            _ => {
+                us.push(u);
+            }
+        };
 
-            us
-        })
+        us
+    })
 }
 
 fn main() -> io::Result<()> {
@@ -25,7 +24,8 @@ fn main() -> io::Result<()> {
     std::io::stdin().read_to_string(&mut input)?;
     let input = input;
 
-    let units_n = polymer_react(&input).len();
+    let line = input.lines().nth(0).expect("No line to parse").chars();
+    let units_n = polymer_react(line.clone()).len();
 
     println!("{}", units_n);
 
@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn test_polymer_react() {
-        let pr = |s: &str| polymer_react(&s).into_iter().collect::<String>();
+        let pr = |s: &str| polymer_react(s.chars()).into_iter().collect::<String>();
 
         assert_eq!(pr("aA"), "");
         assert_eq!(pr("abBA"), "");
