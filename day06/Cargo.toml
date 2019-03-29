@@ -5,3 +5,4 @@ authors = ["Andrea Corradi <andreac@unstable.it>"]
 edition = "2018"
 
 [dependencies]
+itertools = "0.8"
