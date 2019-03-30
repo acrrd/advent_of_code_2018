@@ -1,6 +1,12 @@
 use itertools::Itertools;
+use std::cmp::{max, min};
 
 type Coord = (u32, u32);
+
+struct BoundingBox {
+    min: Coord,
+    max: Coord,
+}
 
 fn parse_coord(line: &str) -> Coord {
     line.split(",")
@@ -15,13 +21,31 @@ fn parse_coords(input: &str) -> Vec<Coord> {
     input.lines().map(parse_coord).collect()
 }
 
+fn get_bounding_box<'a>(coords: impl Iterator<Item = &'a Coord>) -> BoundingBox {
+    const MIN_COORD: Coord = (std::u32::MIN, std::u32::MIN);
+    const MAX_COORD: Coord = (std::u32::MAX, std::u32::MAX);
+    let min_c = |a: &Coord, b: &Coord| (min(a.0, b.0), min(a.1, b.1));
+    let max_c = |a: &Coord, b: &Coord| (max(a.0, b.0), max(a.1, b.1));
+
+    coords.fold(
+        BoundingBox {
+            min: MAX_COORD,
+            max: MIN_COORD,
+        },
+        |bb, c| BoundingBox {
+            min: min_c(&bb.min, &c),
+            max: max_c(&bb.max, &c),
+        },
+    )
+}
+
 fn main() {
     println!("Hello, world!");
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_coord, parse_coords};
+    use super::{get_bounding_box, parse_coord, parse_coords};
 
     #[test]
     fn test_parse_coord() {
@@ -49,5 +73,31 @@ mod tests {
                  111, 111\n"
             )
         )
+    }
+
+    /*
+    A**
+    *B*
+    **C
+    */
+    #[test]
+    fn test_get_bounding_box_simple() {
+        let cs = vec![(0, 0), (1, 1), (2, 2)];
+        let bb = get_bounding_box(cs.iter());
+        assert_eq!(bb.min, (0, 0));
+        assert_eq!(bb.max, (2, 2));
+    }
+
+    /*
+    *A*
+    B*C
+    *D*
+    */
+    #[test]
+    fn test_get_bounding_box_complex() {
+        let cs = vec![(1, 0), (0, 1), (2, 1), (1, 2)];
+        let bb = get_bounding_box(cs.iter());
+        assert_eq!(bb.min, (0, 0));
+        assert_eq!(bb.max, (2, 2));
     }
 }
