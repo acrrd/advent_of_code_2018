@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use std::cmp::{max, min};
 
-type Coord = (u32, u32);
+type Coord = (i32, i32);
 
 struct BoundingBox {
     min: Coord,
@@ -11,7 +11,7 @@ struct BoundingBox {
 fn parse_coord(line: &str) -> Coord {
     line.split(",")
         .map(str::trim)
-        .map(|n| n.parse::<u32>().expect("Cannot parse number"))
+        .map(|n| n.parse::<i32>().expect("Cannot parse number"))
         .tuples()
         .next()
         .expect("Cannot find a point with 2 coordinates")
@@ -22,8 +22,8 @@ fn parse_coords(input: &str) -> Vec<Coord> {
 }
 
 fn get_bounding_box<'a>(coords: impl Iterator<Item = &'a Coord>) -> BoundingBox {
-    const MIN_COORD: Coord = (std::u32::MIN, std::u32::MIN);
-    const MAX_COORD: Coord = (std::u32::MAX, std::u32::MAX);
+    const MIN_COORD: Coord = (0, 0);
+    const MAX_COORD: Coord = (std::i32::MAX, std::i32::MAX);
     let min_c = |a: &Coord, b: &Coord| (min(a.0, b.0), min(a.1, b.1));
     let max_c = |a: &Coord, b: &Coord| (max(a.0, b.0), max(a.1, b.1));
 
