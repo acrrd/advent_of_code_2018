@@ -1,6 +1,7 @@
 use itertools::Itertools;
 use std::borrow::Borrow;
 use std::cmp::{max, min};
+use std::io::{self, Read};
 
 type Coord = (i32, i32);
 
@@ -83,15 +84,45 @@ fn get_source_area<'a>(
     return area;
 }
 
-fn main() {
-    println!("Hello, world!");
+fn get_max_area(
+    sources: &Vec<Coord>,
+    get_distance: impl Fn(&Coord, &Coord) -> u32,
+    is_coord_on_border: impl Fn(&BoundingBox, &Coord) -> bool,
+) -> u32 {
+    let bbox = get_bounding_box(sources.iter());
+    let is_border = |c: &Coord| is_coord_on_border(&bbox, c);
+
+    (0..sources.len())
+        .map(|idx| {
+            get_source_area(
+                &sources,
+                idx,
+                &get_distance,
+                is_border,
+                get_coords(&bbox).iter(),
+            )
+        })
+        .max()
+        .expect("Cannot find max area")
+}
+
+fn main() -> io::Result<()> {
+    let mut input = String::new();
+    std::io::stdin().read_to_string(&mut input)?;
+    let input = input;
+
+    let sources = parse_coords(&input);
+    let area = get_max_area(&sources, manhattan_distance, is_on_border);
+    println!("{}", area);
+
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        get_bounding_box, get_coords, get_source_area, is_on_border, manhattan_distance,
-        parse_coord, parse_coords, BoundingBox, Coord,
+        get_bounding_box, get_coords, get_max_area, get_source_area, is_on_border,
+        manhattan_distance, parse_coord, parse_coords, BoundingBox, Coord,
     };
 
     #[test]
@@ -250,5 +281,11 @@ mod tests {
 
         assert_eq!(get_area(3), 9);
         assert_eq!(get_area(4), 17);
+    }
+
+    #[test]
+    fn test_get_max_area_example() {
+        let sources = vec![(1, 1), (1, 6), (8, 3), (3, 4), (5, 5), (8, 9)];
+        assert_eq!(get_max_area(&sources, manhattan_distance, is_on_border), 17);
     }
 }
