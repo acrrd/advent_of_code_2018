@@ -106,6 +106,31 @@ fn get_max_area(
         .expect("Cannot find max area")
 }
 
+fn sum_distances_from_sources(
+    coord: &Coord,
+    sources: &Vec<Coord>,
+    get_distance: impl Fn(&Coord, &Coord) -> u32,
+) -> u32 {
+    sources
+        .iter()
+        .map(|c: &Coord| get_distance(&coord, c))
+        .sum()
+}
+
+fn get_area_within_threshold(
+    sources: &Vec<Coord>,
+    get_distance: impl Fn(&Coord, &Coord) -> u32,
+    threshold: u32,
+) -> u32 {
+    let bbox = get_bounding_box(sources.iter());
+    get_coords(&bbox)
+        .iter()
+        .map(|c: &Coord| sum_distances_from_sources(c, &sources, &get_distance))
+        .filter(|&dist| dist < threshold)
+        .map(|_| 1)
+        .sum()
+}
+
 fn main() -> io::Result<()> {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input)?;
@@ -115,14 +140,18 @@ fn main() -> io::Result<()> {
     let area = get_max_area(&sources, manhattan_distance, is_on_border);
     println!("{}", area);
 
+    let area_within = get_area_within_threshold(&sources, manhattan_distance, 10000);
+    println!("{}", area_within);
+
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        get_bounding_box, get_coords, get_max_area, get_source_area, is_on_border,
-        manhattan_distance, parse_coord, parse_coords, BoundingBox, Coord,
+        get_area_within_threshold, get_bounding_box, get_coords, get_max_area, get_source_area,
+        is_on_border, manhattan_distance, parse_coord, parse_coords, sum_distances_from_sources,
+        BoundingBox, Coord,
     };
 
     #[test]
@@ -287,5 +316,23 @@ mod tests {
     fn test_get_max_area_example() {
         let sources = vec![(1, 1), (1, 6), (8, 3), (3, 4), (5, 5), (8, 9)];
         assert_eq!(get_max_area(&sources, manhattan_distance, is_on_border), 17);
+    }
+
+    #[test]
+    fn test_sum_distances_from_sources_example() {
+        let sources = vec![(1, 1), (1, 6), (8, 3), (3, 4), (5, 5), (8, 9)];
+        assert_eq!(
+            sum_distances_from_sources(&(4, 3), &sources, manhattan_distance),
+            30
+        );
+    }
+
+    #[test]
+    fn test_get_area_within_threshold_example() {
+        let sources = vec![(1, 1), (1, 6), (8, 3), (3, 4), (5, 5), (8, 9)];
+        assert_eq!(
+            get_area_within_threshold(&sources, manhattan_distance, 32),
+            16
+        );
     }
 }
