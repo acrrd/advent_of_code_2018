@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use std::borrow::Borrow;
 use std::cmp::{max, min};
 
 type Coord = (i32, i32);
@@ -21,7 +22,7 @@ fn parse_coords(input: &str) -> Vec<Coord> {
     input.lines().map(parse_coord).collect()
 }
 
-fn get_bounding_box<'a>(coords: impl Iterator<Item = &'a Coord>) -> BoundingBox {
+fn get_bounding_box<T: Borrow<Coord>>(coords: impl Iterator<Item = T>) -> BoundingBox {
     const MIN_COORD: Coord = (0, 0);
     const MAX_COORD: Coord = (std::i32::MAX, std::i32::MAX);
     let min_c = |a: &Coord, b: &Coord| (min(a.0, b.0), min(a.1, b.1));
@@ -32,9 +33,12 @@ fn get_bounding_box<'a>(coords: impl Iterator<Item = &'a Coord>) -> BoundingBox 
             min: MAX_COORD,
             max: MIN_COORD,
         },
-        |bb, c| BoundingBox {
-            min: min_c(&bb.min, &c),
-            max: max_c(&bb.max, &c),
+        |bb, c| {
+            let c = c.borrow();
+            BoundingBox {
+                min: min_c(&bb.min, c),
+                max: max_c(&bb.max, c),
+            }
         },
     )
 }
