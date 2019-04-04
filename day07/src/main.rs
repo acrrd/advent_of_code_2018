@@ -48,5 +48,9 @@ mod tests {
         assert_eq!(*graph.get(&b'C').unwrap(), vec![b'A', b'F']);
         assert!(graph.contains_key(&b'A'));
         assert_eq!(*graph.get(&b'A').unwrap(), vec![b'B']);
+        assert!(graph.contains_key(&b'F'));
+        assert_eq!(*graph.get(&b'F').unwrap(), vec![]);
+        assert!(graph.contains_key(&b'B'));
+        assert_eq!(*graph.get(&b'B').unwrap(), vec![]);
     }
 }
