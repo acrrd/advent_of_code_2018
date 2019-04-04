@@ -1,11 +1,14 @@
-use itertools::Itertools;
 use std::collections::HashMap;
 
 type Edge = (u8, u8);
 type Graph = HashMap<u8, Vec<u8>>;
 
 fn from_edges(edges: impl Iterator<Item = Edge>) -> Graph {
-    edges.into_group_map()
+    edges.fold(Graph::new(), |mut graph, (from, to)| {
+        graph.entry(to).or_default();
+        graph.entry(from).or_default().push(to);
+        graph
+    })
 }
 
 fn parse_edge(line: &str) -> Edge {
