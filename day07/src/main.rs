@@ -1,6 +1,7 @@
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
+use std::io::{self, Read};
 
 type Edge = (u8, u8);
 type Graph = HashMap<u8, Vec<u8>>;
@@ -59,8 +60,15 @@ fn topological_order(graph: Graph) -> Vec<u8> {
     order
 }
 
-fn main() {
-    println!("Hello, world!");
+fn main() -> io::Result<()> {
+    let mut input = String::new();
+    std::io::stdin().read_to_string(&mut input)?;
+    let input = input;
+
+    let order = topological_order(from_edges(parse_edges(&input)));
+    println!("{}", String::from_utf8_lossy(&order));
+
+    Ok(())
 }
 
 #[cfg(test)]
