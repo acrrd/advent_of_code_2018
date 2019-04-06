@@ -35,14 +35,18 @@ fn get_in_edges_count(graph: &Graph) -> HashMap<&u8, u8> {
         })
 }
 
-fn topological_order(graph: Graph) -> Vec<u8> {
-    let mut in_edges = get_in_edges_count(&graph);
-
-    let mut queue: BinaryHeap<Reverse<&u8>> = in_edges
+fn init_queue<'a>(in_edges: &HashMap<&'a u8, u8>) -> BinaryHeap<Reverse<&'a u8>> {
+    in_edges
         .iter()
         .filter(|(_, &v)| v == 0)
         .map(|(k, _)| Reverse(*k))
-        .collect();
+        .collect()
+}
+
+fn topological_order(graph: Graph) -> Vec<u8> {
+    let mut in_edges = get_in_edges_count(&graph);
+
+    let mut queue = init_queue(&in_edges);
 
     let mut order: Vec<u8> = Vec::with_capacity(graph.len());
 
