@@ -23,17 +23,20 @@ fn parse_edges(input: &str) -> impl Iterator<Item = Edge> + '_ {
     input.lines().map(parse_edge)
 }
 
+fn get_in_edges_count(graph: &Graph) -> HashMap<&u8, u8> {
+    graph
+        .iter()
+        .fold(HashMap::new(), |mut in_edges, (k, edges)| {
+            in_edges.entry(k).or_default();
+            edges.iter().fold(in_edges, |mut in_edges, edge| {
+                *in_edges.entry(edge).or_default() += 1;
+                in_edges
+            })
+        })
+}
+
 fn topological_order(graph: Graph) -> Vec<u8> {
-    let mut in_edges: HashMap<&u8, u8> =
-        graph
-            .iter()
-            .fold(HashMap::new(), |mut in_edges, (k, edges)| {
-                in_edges.entry(k).or_default();
-                edges.iter().fold(in_edges, |mut in_edges, edge| {
-                    *in_edges.entry(edge).or_default() += 1;
-                    in_edges
-                })
-            });
+    let mut in_edges = get_in_edges_count(&graph);
 
     let mut queue: BinaryHeap<Reverse<&u8>> = in_edges
         .iter()
