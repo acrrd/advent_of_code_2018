@@ -143,6 +143,10 @@ fn main() -> io::Result<()> {
     let max_score = *gs.scores.iter().max().expect("Maximum score");
     println!("{}", max_score);
 
+    let gs = play_game(marbles * 100, players);
+    let max_score = *gs.scores.iter().max().expect("Maximum score");
+    println!("{}", max_score);
+
     Ok(())
 }
 
