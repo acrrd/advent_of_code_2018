@@ -1,29 +1,95 @@
-use std::collections::VecDeque;
 use std::io::{self, Read};
 
-#[inline(always)]
-fn modulus(a: i64, b: usize) -> usize {
-    let b = b as i64;
-    (((a % b) + b) % b) as usize
+// double linked list like structure
+// instead of having pointers to prev and next nodes it
+// keep their indexes in the vector
+#[derive(Debug)]
+struct MarbleNode {
+    value: u32,
+    prev: usize,
+    next: usize,
+}
+
+type MarbleIndex = usize;
+
+#[derive(Debug)]
+struct MarbleList {
+    nodes: Vec<MarbleNode>,
+}
+
+impl MarbleList {
+    fn new(marbles: usize) -> MarbleList {
+        let mut nodes = Vec::with_capacity(marbles);
+        nodes.push(MarbleNode {
+            value: 0,
+            prev: 0,
+            next: 0,
+        });
+        MarbleList { nodes: nodes }
+    }
+
+    fn get(self: &Self, cur: MarbleIndex) -> u32 {
+        self.nodes.get(cur).expect("Cannot find MarbleNode").value
+    }
+
+    fn add(self: &mut Self, cur: MarbleIndex, value: u32) -> MarbleIndex {
+        let new = self.nodes.len();
+        let cur_node = self.nodes.get(cur).expect("Cannot find MarbleNode");
+
+        let prev = cur_node.next;
+        let prev_node = self.nodes.get_mut(prev).expect("Cannot find MarbleNode");
+        let next = prev_node.next;
+        prev_node.next = new;
+
+        let next_node = self.nodes.get_mut(next).expect("Cannot find MarbleNode");
+        next_node.prev = new;
+
+        self.nodes.push(MarbleNode {
+            value,
+            prev: prev,
+            next: next,
+        });
+
+        new
+    }
+
+    fn back(self: &Self, cur: MarbleIndex) -> MarbleIndex {
+        let mut node = self.nodes.get(cur).expect("Cannot find MarbleNode");
+        for _ in 0..6 {
+            node = self.nodes.get(node.prev).expect("Cannot find MarbleNode");
+        }
+        node.prev
+    }
+
+    // we are leaving hole in the vector :(
+    fn remove(self: &mut Self, cur: MarbleIndex) -> MarbleIndex {
+        let node = self.nodes.get(cur).expect("Cannot find MarbleNode");
+        let prev = node.prev;
+        let next = node.next;
+        let prev_node = self.nodes.get_mut(prev).expect("Cannot find MarbleNode");
+        prev_node.next = next;
+
+        let next_node = self.nodes.get_mut(next).expect("Cannot find MarbleNode");
+        next_node.prev = prev;
+
+        next
+    }
 }
 
 struct GameState {
-    marbles: VecDeque<u32>,
+    marbles: MarbleList,
+    marble_cur: MarbleIndex,
     scores: Vec<u32>,
-    marble_idx: usize,
     marble_value: u32,
 }
 
 impl GameState {
-    fn new(players: usize, marbles: usize) -> GameState {
-        let mut marbles = VecDeque::with_capacity(marbles - (marbles / 23 * 2) + 1);
-        marbles.push_back(0);
-
-        let scores: Vec<u32> = vec![0; players];
+    fn new(players_n: usize, marbles_n: usize) -> GameState {
+        let scores: Vec<u32> = vec![0; players_n];
         GameState {
-            marbles,
+            marbles: MarbleList::new(marbles_n),
+            marble_cur: 0,
             scores,
-            marble_idx: 0,
             marble_value: 0,
         }
     }
@@ -32,24 +98,18 @@ impl GameState {
 // advance the game until some player score
 fn next_state(mut gs: GameState) -> GameState {
     for _ in 0..22 {
-        let mut idx = gs.marble_idx;
-        let marbles_len = gs.marbles.len();
-        idx = (idx + 2) % marbles_len;
-        if idx == 0 {
-            idx = marbles_len;
-        }
         gs.marble_value += 1;
-        gs.marble_idx = idx;
-        gs.marbles.insert(idx, gs.marble_value);
+        gs.marble_cur = gs.marbles.add(gs.marble_cur, gs.marble_value);
     }
 
     gs.marble_value += 1;
     let player = gs.marble_value as usize % gs.scores.len();
     gs.scores[player] += gs.marble_value;
 
-    let to_remove = modulus(gs.marble_idx as i64 - 7, gs.marbles.len());
-    gs.scores[player] += gs.marbles.remove(to_remove).unwrap();
-    gs.marble_idx = to_remove;
+    let to_remove = gs.marbles.back(gs.marble_cur);
+    gs.scores[player] += gs.marbles.get(to_remove);
+
+    gs.marble_cur = gs.marbles.remove(to_remove);
 
     gs
 }
