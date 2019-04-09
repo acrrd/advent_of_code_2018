@@ -100,6 +100,7 @@ fn main() -> io::Result<()> {
     points.iter_mut().for_each(|p| p.translate(steps));
     let bbox = get_bbox(&points);
     print_grid(&bbox, &points);
+    println!("Seconds: {}", steps);
 
     Ok(())
 }
