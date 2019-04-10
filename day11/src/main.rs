@@ -3,9 +3,10 @@ use std::io::{self, Read};
 
 type Coord = (u32, u32);
 
+#[derive(Clone)]
 struct Grid {
     side: usize,
-    pls: Vec<i8>,
+    pls: Vec<i32>,
 }
 
 fn get_power_level(coord: &Coord, serial_n: i32) -> i8 {
@@ -26,7 +27,7 @@ fn init_grid(side: usize, serial_n: i32) -> Grid {
     let range = || (1..=side as u32);
     let pls = range()
         .cartesian_product(range())
-        .map(|c| get_power_level(&c, serial_n))
+        .map(|c| get_power_level(&c, serial_n) as i32)
         .collect();
 
     Grid { side, pls }
@@ -72,14 +73,14 @@ fn compute_sub_squares_from_prev(base_grid: &Grid, prev_grid: &Grid) -> Grid {
                         get(base_grid, (x + prev_square_size, y + offset))
                             + get(base_grid, (x + offset, y + prev_square_size))
                     })
-                    .sum::<i8>()
+                    .sum::<i32>()
         })
         .collect();
 
     Grid { side, pls }
 }
 
-fn get_max_square(grid: &Grid) -> (i8, Coord) {
+fn get_max_square(grid: &Grid) -> (i32, Coord) {
     let (total, idx) = grid
         .pls
         .iter()
@@ -95,6 +96,15 @@ fn get_max_square(grid: &Grid) -> (i8, Coord) {
     (*total, (x as u32, y as u32))
 }
 
+fn get_max_square_with_size(grid: &Grid) -> (i32, Coord, usize) {
+    let tmp: Grid = grid.clone();
+    (2..=grid.side).scan(tmp, |prev_grid, size| {
+        *prev_grid = compute_sub_squares_from_prev(&grid, &prev_grid);
+        let (total, coord) = get_max_square(&prev_grid);
+        Some((total, coord, size))
+    }).max().unwrap()
+}
+
 fn main() -> io::Result<()> {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input)?;
@@ -107,6 +117,10 @@ fn main() -> io::Result<()> {
 
     println!("{:?} with a total of {}", coord, total);
 
+    let (total, coord, size) = get_max_square_with_size(&power_levels_grid);
+
+    println!("{:?} of size {} with a total of {}", coord, size, total);
+
     Ok(())
 }
 
@@ -114,7 +128,7 @@ fn main() -> io::Result<()> {
 mod tests {
     use super::{
         compute_sub_squares, compute_sub_squares_from_prev, get_max_square, get_power_level,
-        init_grid,
+        init_grid, get_max_square_with_size
     };
 
     #[test]
@@ -206,5 +220,13 @@ mod tests {
         let three_grid = compute_sub_squares_from_prev(&grid, &two_grid);
 
         assert_eq!(get_max_square(&three_grid), (30, (21, 61)));
+    }
+
+    #[test]
+    fn test_get_max_square_with_size() {
+        let grid = init_grid(3, 0);
+        let (_, _, size) = get_max_square_with_size(&grid);
+
+        assert_eq!(size, 2);
     }
 }
