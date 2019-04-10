@@ -87,7 +87,7 @@ fn get_max_square(grid: &Grid) -> (i32, Coord) {
         .enumerate()
         .map(|(i, v)| (v, i))
         .max()
-        .expect("Canot find square");
+        .expect("Cannot find square");
 
     let side = grid.side;
     let x = (idx / side) + 1;
