@@ -54,6 +54,34 @@ fn compute_sub_squares(grid: &Grid) -> Grid {
     Grid { side, pls: agg_pls }
 }
 
+use std::dbg;
+
+fn compute_sub_squares_from_prev(base_grid: &Grid, prev_grid: &Grid) -> Grid {
+    let side = dbg!(prev_grid.side) - 1;
+    let prev_square_size = base_grid.side - side;
+    //let square_size = base_grid.side - new_side + 1;
+
+    let get = |g: &Grid, (x, y)| g.pls[g.side * (x - 1) + y - 1];
+    let pls = (1..=prev_grid.side-1)
+        .cartesian_product(1..=prev_grid.side-1)
+        .map(|(x, y)| {
+            // power level of the previous square 
+            // plus the line under it, the column at its right
+            // and the cell in the corner
+            get(prev_grid, (x, y))
+                + get(base_grid, (x + prev_square_size, y + prev_square_size))
+                + (0..prev_square_size)
+                    .map(|offset| {
+                        get(base_grid, (x + prev_square_size, y + offset))
+                            + get(base_grid, (x + offset, y + prev_square_size))
+                    })
+                    .sum::<i8>()
+        })
+        .collect();
+
+    Grid { side, pls }
+}
+
 fn get_max_square(grid: &Grid) -> (Coord, i8) {
     let (total, idx) = grid
         .pls
@@ -87,7 +115,10 @@ fn main() -> io::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{compute_sub_squares, get_max_square, get_power_level, init_grid};
+    use super::{
+        compute_sub_squares, compute_sub_squares_from_prev, get_max_square, get_power_level,
+        init_grid
+    };
 
     #[test]
     fn test_get_power_level() {
@@ -139,5 +170,44 @@ mod tests {
         let pls_grid = init_grid(side, serial_n);
         let squares_grid = compute_sub_squares(&pls_grid);
         assert_eq!(get_max_square(&squares_grid), ((21, 61), 30));
+    }
+
+    #[test]
+    fn test_compute_sub_squares_from_prev() {
+        let grid = init_grid(3, 0);
+        let two_grid = compute_sub_squares_from_prev(&grid, &grid);
+        let three_grid = compute_sub_squares_from_prev(&grid, &two_grid);
+
+        assert_eq!(three_grid.pls, vec![-23]);
+
+        let grid = init_grid(4, 0);
+        let two_grid = compute_sub_squares_from_prev(&grid, &grid);
+        let three_grid = compute_sub_squares_from_prev(&grid, &two_grid);
+
+        assert_eq!(three_grid.pls, vec![-23, -11, -20, -5]);
+    }
+
+    #[test]
+    fn test_compute_sub_squares_from_prev_18() {
+        let side = 300;
+        let serial_n = 18;
+        let grid = init_grid(side, serial_n);
+
+        let two_grid = compute_sub_squares_from_prev(&grid, &grid);
+        let three_grid = compute_sub_squares_from_prev(&grid, &two_grid);
+
+        assert_eq!(get_max_square(&three_grid), ((33, 45), 29));
+    }
+
+    #[test]
+    fn test_compute_sub_squares_from_prev_42() {
+        let side = 300;
+        let serial_n = 42;
+        let grid = init_grid(side, serial_n);
+
+        let two_grid = compute_sub_squares_from_prev(&grid, &grid);
+        let three_grid = compute_sub_squares_from_prev(&grid, &two_grid);
+
+        assert_eq!(get_max_square(&three_grid), ((21, 61), 30));
     }
 }
