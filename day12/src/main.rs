@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 struct Pots {
     list: Vec<bool>,
     zero_pos: usize,
@@ -39,13 +41,40 @@ fn ensure_empty_pots(pots: Pots) -> Pots {
     Pots { list, zero_pos }
 }
 
+type Pattern = [bool; 5];
+
+fn parse_pattern(line: &str) -> (Pattern, bool) {
+    let cs: Vec<_> = line.split(' ').collect();
+    let pattern = cs.get(0).expect("Impossible to read pattern");
+    let pattern: Vec<_> = pattern.chars().map(|c| c == '#').collect();
+    let status = cs.get(2).expect("Impossible to read pattern");
+
+    if pattern.len() != 5 {
+        panic!("Pattern must have len 5");
+    }
+
+    let mut arr = [false; 5];
+    arr.copy_from_slice(&pattern);
+    (arr, *status == "#")
+}
+
+fn parse_patterns(input: &str) -> HashMap<Pattern, bool> {
+    input
+        .lines()
+        .map(parse_pattern)
+        .fold(HashMap::new(), |mut patterns, (pattern, value)| {
+            patterns.insert(pattern, value);
+            patterns
+        })
+}
+
 fn main() {
     println!("Hello, world!");
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Pots, ensure_empty_pots};
+    use super::{ensure_empty_pots, parse_pattern, parse_patterns, Pots};
 
     const T: bool = true;
     const F: bool = false;
@@ -105,5 +134,34 @@ mod tests {
 
         assert_eq!(pots.list, vec![F, F, F, F, T, F, F, F, F]);
         assert_eq!(pots.zero_pos, 4);
+    }
+
+    #[test]
+    fn test_parse_pattern() {
+        let line = "#.### => .";
+        assert_eq!(parse_pattern(line), ([T, F, T, T, T], F));
+
+        let line = "#.### => #";
+        assert_eq!(parse_pattern(line), ([T, F, T, T, T], T));
+
+        let line = "..#.. => #";
+        assert_eq!(parse_pattern(line), ([F, F, T, F, F], T));
+    }
+
+    #[test]
+    fn test_parse_patterns() {
+        let input = "#.### => .\n\
+                     #.#.# => #\n\
+                     ..#.. => #";
+        let patterns = parse_patterns(input);
+
+        assert!(patterns.contains_key(&[T, F, T, T, T]));
+        assert_eq!(*patterns.get(&[T, F, T, T, T]).unwrap(), F);
+
+        assert!(patterns.contains_key(&[T, F, T, F, T]));
+        assert_eq!(*patterns.get(&[T, F, T, F, T]).unwrap(), T);
+
+        assert!(patterns.contains_key(&[F, F, T, F, F]));
+        assert_eq!(*patterns.get(&[F, F, T, F, F]).unwrap(), T);
     }
 }
