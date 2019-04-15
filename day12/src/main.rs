@@ -19,14 +19,15 @@ impl Pots {
 
 // ensure that there are at least 4 empty pots at the begin and at the end
 fn ensure_empty_pots(pots: Pots) -> Pots {
-    let first_full = pots.list.iter().take(4).position(|p| *p).map(|p| 4 - p);
+    let at_least = 4;
+    let first_full = pots.list.iter().take(at_least).position(|p| *p).map(|p| at_least - p);
     let last_full = pots
         .list
         .iter()
         .rev()
-        .take(4)
+        .take(at_least)
         .position(|p| *p)
-        .map(|p| (p as i32 - 4).abs() as usize);
+        .map(|p| (p as i32 - at_least as i32).abs() as usize);
 
     let to_add_at =
         |pos: Option<usize>| if let Some(p) = pos { (0..p) } else { (0..0) }.map(|_| false);
