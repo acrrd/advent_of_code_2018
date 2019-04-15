@@ -43,10 +43,14 @@ fn ensure_empty_pots(pots: Pots) -> Pots {
 
 type Pattern = [bool; 5];
 
+fn parse_pots(input: &str) -> Vec<bool> {
+    input.chars().map(|c| c == '#').collect()
+}
+
 fn parse_pattern(line: &str) -> (Pattern, bool) {
     let cs: Vec<_> = line.split(' ').collect();
     let pattern = cs.get(0).expect("Impossible to read pattern");
-    let pattern: Vec<_> = pattern.chars().map(|c| c == '#').collect();
+    let pattern: Vec<_> = parse_pots(pattern);
     let status = cs.get(2).expect("Impossible to read pattern");
 
     if pattern.len() != 5 {
