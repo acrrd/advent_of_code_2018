@@ -42,6 +42,7 @@ fn ensure_empty_pots(pots: Pots) -> Pots {
 }
 
 type Pattern = [bool; 5];
+type Patterns = HashMap<Pattern, bool>;
 
 fn parse_pots(input: &str) -> Vec<bool> {
     input.chars().map(|c| c == '#').collect()
@@ -62,7 +63,7 @@ fn parse_pattern(line: &str) -> (Pattern, bool) {
     (arr, *status == "#")
 }
 
-fn parse_patterns(input: &str) -> HashMap<Pattern, bool> {
+fn parse_patterns(input: &str) -> Patterns {
     input
         .lines()
         .map(parse_pattern)
@@ -72,13 +73,22 @@ fn parse_patterns(input: &str) -> HashMap<Pattern, bool> {
         })
 }
 
+fn next_state(patterns: &Patterns, mut pots: Pots) -> Pots {
+    pots.list = pots
+        .list
+        .windows(5)
+        .map(|pattern| *patterns.get(pattern).unwrap_or(&false) )
+        .collect::<Vec<_>>();
+    ensure_empty_pots(pots)
+}
+
 fn main() {
     println!("Hello, world!");
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{ensure_empty_pots, parse_pattern, parse_patterns, Pots};
+    use super::{ensure_empty_pots, next_state, parse_pattern, parse_patterns, parse_pots, Pots};
 
     const T: bool = true;
     const F: bool = false;
@@ -167,5 +177,80 @@ mod tests {
 
         assert!(patterns.contains_key(&[F, F, T, F, F]));
         assert_eq!(*patterns.get(&[F, F, T, F, F]).unwrap(), T);
+    }
+
+    #[test]
+    fn test_next_state() {
+        let input = "...## => #\n\
+                     ..#.. => #\n\
+                     .#... => #\n\
+                     .#.#. => #\n\
+                     .#.## => #\n\
+                     .##.. => #\n\
+                     .#### => #\n\
+                     #.#.# => #\n\
+                     #.### => #\n\
+                     ##.#. => #\n\
+                     ##.## => #\n\
+                     ###.. => #\n\
+                     ###.# => #\n\
+                     ####. => #";
+        let patterns = parse_patterns(input);
+        let pots = parse_pots("#..#.#..##");
+        let pots = ensure_empty_pots(Pots::new(&pots));
+        let next = next_state(&patterns, pots);
+        assert_eq!(next.list, parse_pots("....#...#....#...."));
+        let next = next_state(&patterns, next);
+        assert_eq!(next.list, parse_pots("....##..##...##...."));
+    }
+
+    #[test]
+    fn test_next_state_example() {
+        let input = "...## => #\n\
+                     ..#.. => #\n\
+                     .#... => #\n\
+                     .#.#. => #\n\
+                     .#.## => #\n\
+                     .##.. => #\n\
+                     .#### => #\n\
+                     #.#.# => #\n\
+                     #.### => #\n\
+                     ##.#. => #\n\
+                     ##.## => #\n\
+                     ###.. => #\n\
+                     ###.# => #\n\
+                     ####. => #";
+        let tests = vec![
+            "....#...#....#.....#..#..#..#....",
+            "....##..##...##....#..#..#..##....",
+            "....#.#...#..#.#....#..#..#...#....",
+            "....#.#..#...#.#...#..#..##..##....",
+            "....#...##...#.#..#..#...#...#....",
+            "....##.#.#....#...#..##..##..##....",
+            "....#..###.#...##..#...#...#...#....",
+            "....#....##.#.#.#..##..##..##..##....",
+            "....##..#..#####....#...#...#...#....",
+            "....#.#..#...#.##....##..##..##..##....",
+            "....#...##...#.#...#.#...#...#...#....",
+            "....##.#.#....#.#...#.#..##..##..##....",
+            "....#..###.#....#.#...#....#...#...#....",
+            "....#....##.#....#.#..##...##..##..##....",
+            "....##..#..#.#....#....#..#.#...#...#....",
+            "....#.#..#...#.#...##...#...#.#..##..##....",
+            "....#...##...#.#.#.#...##...#....#...#....",
+            "....##.#.#....#####.#.#.#...##...##..##....",
+            "....#..###.#..#.#.#######.#.#.#..#.#...#....",
+            "....#....##....#####...#######....#.#..##....",
+        ];
+
+        let patterns = parse_patterns(input);
+        let pots = parse_pots("#..#.#..##......###...###");
+        let pots = ensure_empty_pots(Pots::new(&pots));
+
+        tests.iter().fold(pots, |pots, test| {
+            let next = next_state(&patterns, pots);
+            assert_eq!(next.list, parse_pots(test));
+            next
+        });
     }
 }
