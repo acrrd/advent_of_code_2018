@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::{self, Read};
 
 struct Pots {
     list: Vec<bool>,
@@ -69,9 +70,8 @@ fn parse_pattern(line: &str) -> (Pattern, bool) {
     (arr, *status == "#")
 }
 
-fn parse_patterns(input: &str) -> Patterns {
-    input
-        .lines()
+fn parse_patterns<'a>(lines: impl Iterator<Item = &'a str>) -> Patterns {
+    lines
         .map(parse_pattern)
         .fold(HashMap::new(), |mut patterns, (pattern, value)| {
             patterns.insert(pattern, value);
@@ -91,13 +91,51 @@ fn next_state(patterns: &Patterns, mut pots: Pots) -> Pots {
     ensure_empty_pots(pots)
 }
 
-fn main() {
-    println!("Hello, world!");
+fn sum_pots_position(pots: &Pots) -> i32 {
+    pots.list
+        .iter()
+        .enumerate()
+        .filter(|(_, p)| **p)
+        .map(|(pos, _)| pos as i32 - pots.zero_pos as i32)
+        .sum()
+}
+
+fn play_game(pots: Pots, patterns: &Patterns, turns: usize) -> Pots {
+    (0..turns).fold(pots, |pots, _| next_state(&patterns, pots))
+}
+
+fn parse_input(input: &str) -> (Pots, Patterns) {
+    let pots = input
+        .lines()
+        .take(1)
+        .map(|line| parse_pots(&line[15..].trim()))
+        .nth(0)
+        .expect("Initial state");
+    let pots = ensure_empty_pots(Pots::new(&pots));
+
+    let patterns = parse_patterns(input.lines().skip(2));
+    (pots, patterns)
+}
+
+fn main() -> io::Result<()> {
+    let mut input = String::new();
+    std::io::stdin().read_to_string(&mut input)?;
+    let input = input;
+
+    let (pots, patterns) = parse_input(&input);
+    let pots = play_game(pots, &patterns, 20);
+
+    println!("{}", sum_pots_position(&pots));
+
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{ensure_empty_pots, next_state, parse_pattern, parse_patterns, parse_pots, Pots};
+    use super::{
+        ensure_empty_pots, next_state, parse_input, parse_pattern, parse_patterns, parse_pots,
+        play_game, sum_pots_position, Pots,
+    };
 
     const T: bool = true;
     const F: bool = false;
@@ -176,7 +214,7 @@ mod tests {
         let input = "#.### => .\n\
                      #.#.# => #\n\
                      ..#.. => #";
-        let patterns = parse_patterns(input);
+        let patterns = parse_patterns(input.lines());
 
         assert!(patterns.contains_key(&[T, F, T, T, T]));
         assert_eq!(*patterns.get(&[T, F, T, T, T]).unwrap(), F);
@@ -204,7 +242,7 @@ mod tests {
                      ###.. => #\n\
                      ###.# => #\n\
                      ####. => #";
-        let patterns = parse_patterns(input);
+        let patterns = parse_patterns(input.lines());
         let pots = parse_pots("#..#.#..##");
         let pots = ensure_empty_pots(Pots::new(&pots));
         let next = next_state(&patterns, pots);
@@ -257,7 +295,7 @@ mod tests {
             ("....#....##....#####...#######....#.#..##....", 6),
         ];
 
-        let patterns = parse_patterns(input);
+        let patterns = parse_patterns(input.lines());
         let pots = parse_pots("#..#.#..##......###...###");
         let pots = ensure_empty_pots(Pots::new(&pots));
 
@@ -268,4 +306,86 @@ mod tests {
             next
         });
     }
+
+    #[test]
+    fn test_sum_pots_position() {
+        let pots = parse_pots("#.#.#");
+        let pots = ensure_empty_pots(Pots::new(&pots));
+        assert_eq!(sum_pots_position(&pots), 6);
+        let pots = parse_pots(".#.#.#");
+        let pots = ensure_empty_pots(Pots::new(&pots));
+        assert_eq!(sum_pots_position(&pots), 9);
+    }
+
+    #[test]
+    fn test_sum_pots_position_example() {
+        let input = "...## => #\n\
+                     ..#.. => #\n\
+                     .#... => #\n\
+                     .#.#. => #\n\
+                     .#.## => #\n\
+                     .##.. => #\n\
+                     .#### => #\n\
+                     #.#.# => #\n\
+                     #.### => #\n\
+                     ##.#. => #\n\
+                     ##.## => #\n\
+                     ###.. => #\n\
+                     ###.# => #\n\
+                     ####. => #";
+        let patterns = parse_patterns(input.lines());
+        let pots = parse_pots("#..#.#..##......###...###");
+        let pots = ensure_empty_pots(Pots::new(&pots));
+
+        let pots = (0..20).fold(pots, |pots, _| next_state(&patterns, pots));
+
+        assert_eq!(sum_pots_position(&pots), 325);
+    }
+
+    #[test]
+    fn test_play_game() {
+        let input = "initial state: #..#.#..##......###...###\n\
+                     \n\
+                     ...## => #\n\
+                     ..#.. => #\n\
+                     .#... => #\n\
+                     .#.#. => #\n\
+                     .#.## => #\n\
+                     .##.. => #\n\
+                     .#### => #\n\
+                     #.#.# => #\n\
+                     #.### => #\n\
+                     ##.#. => #\n\
+                     ##.## => #\n\
+                     ###.. => #\n\
+                     ###.# => #\n\
+                     ####. => #";
+
+        let test_pots = parse_pots("#..#.#..##......###...###");
+        let test_pots = ensure_empty_pots(Pots::new(&test_pots));
+
+        let pattern_input = "...## => #\n\
+                             ..#.. => #\n\
+                             .#... => #\n\
+                             .#.#. => #\n\
+                             .#.## => #\n\
+                             .##.. => #\n\
+                             .#### => #\n\
+                             #.#.# => #\n\
+                             #.### => #\n\
+                             ##.#. => #\n\
+                             ##.## => #\n\
+                             ###.. => #\n\
+                             ###.# => #\n\
+                             ####. => #";
+        let test_patterns = parse_patterns(pattern_input.lines());
+
+        let (pots, patterns) = parse_input(&input);
+        assert_eq!(pots.list, test_pots.list);
+        assert_eq!(patterns, test_patterns);
+
+        let pots = play_game(pots, &patterns, 20);
+        assert_eq!(sum_pots_position(&pots), 325);
+    }
+
 }
