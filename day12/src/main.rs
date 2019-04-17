@@ -91,12 +91,12 @@ fn next_state(patterns: &Patterns, mut pots: Pots) -> Pots {
     ensure_empty_pots(pots)
 }
 
-fn sum_pots_position(pots: &Pots) -> i32 {
+fn sum_pots_position(pots: &Pots, base: i64) -> i64 {
     pots.list
         .iter()
         .enumerate()
         .filter(|(_, p)| **p)
-        .map(|(pos, _)| pos as i32 - pots.zero_pos as i32)
+        .map(|(pos, _)| base + pos as i64 - pots.zero_pos as i64)
         .sum()
 }
 
@@ -117,6 +117,35 @@ fn parse_input(input: &str) -> (Pots, Patterns) {
     (pots, patterns)
 }
 
+fn find_convergence(mut pots: Pots, patterns: &Patterns) -> (usize, usize, Pots) {
+    let reduce = |list: &Vec<bool>| {
+        list.iter()
+            .skip_while(|v| !**v)
+            .cloned()
+            .collect::<Vec<bool>>()
+    };
+    let count_empty_pot_in_front =
+        |list: &Vec<bool>| list.iter().position(|p| *p).expect("A full pot");
+    let mut turns: usize = 0;
+    let mut prev_list = reduce(&pots.list);
+    let mut prev_empty_pot_in_front = count_empty_pot_in_front(&pots.list);
+
+    loop {
+        turns += 1;
+        pots = next_state(&patterns, pots);
+        if prev_list == reduce(&pots.list) {
+            return (
+                turns,
+                count_empty_pot_in_front(&pots.list) - prev_empty_pot_in_front,
+                pots
+            );
+        }
+
+        prev_list = reduce(&pots.list);
+        prev_empty_pot_in_front = count_empty_pot_in_front(&pots.list);
+    }
+}
+
 fn main() -> io::Result<()> {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input)?;
@@ -125,7 +154,13 @@ fn main() -> io::Result<()> {
     let (pots, patterns) = parse_input(&input);
     let pots = play_game(pots, &patterns, 20);
 
-    println!("{}", sum_pots_position(&pots));
+    println!("{}", sum_pots_position(&pots, 0));
+
+    let info = find_convergence(pots, &patterns);
+    let end_turns: usize = 50_000_000_000;
+    let remaining_turns = end_turns - 20 - info.0;
+    let shift = remaining_turns * info.1;
+    println!("{}", sum_pots_position(&info.2, shift as i64));
 
     Ok(())
 }
@@ -311,10 +346,10 @@ mod tests {
     fn test_sum_pots_position() {
         let pots = parse_pots("#.#.#");
         let pots = ensure_empty_pots(Pots::new(&pots));
-        assert_eq!(sum_pots_position(&pots), 6);
+        assert_eq!(sum_pots_position(&pots, 0), 6);
         let pots = parse_pots(".#.#.#");
         let pots = ensure_empty_pots(Pots::new(&pots));
-        assert_eq!(sum_pots_position(&pots), 9);
+        assert_eq!(sum_pots_position(&pots, 0), 9);
     }
 
     #[test]
@@ -339,7 +374,7 @@ mod tests {
 
         let pots = (0..20).fold(pots, |pots, _| next_state(&patterns, pots));
 
-        assert_eq!(sum_pots_position(&pots), 325);
+        assert_eq!(sum_pots_position(&pots, 0), 325);
     }
 
     #[test]
@@ -385,7 +420,7 @@ mod tests {
         assert_eq!(patterns, test_patterns);
 
         let pots = play_game(pots, &patterns, 20);
-        assert_eq!(sum_pots_position(&pots), 325);
+        assert_eq!(sum_pots_position(&pots, 0), 325);
     }
 
 }
