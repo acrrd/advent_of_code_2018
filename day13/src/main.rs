@@ -44,11 +44,11 @@ fn parse_track(input: &str) -> (Track, Vec<Cart>) {
     input
         .lines()
         .enumerate()
-        .flat_map(|(x, line)| {
+        .flat_map(|(y, line)| {
             line.chars()
                 .enumerate()
                 .filter(|(_, c)| *c != ' ')
-                .map(move |(y, c)| ((x, y), c))
+                .map(move |(x, c)| ((x, y), c))
         })
         .fold(
             (Track::new(), Vec::new()),
@@ -111,16 +111,16 @@ mod tests {
 
         let (track, _) = parse_track(input);
 
-        assert!(track.contains_key(&(0, 1)));
-        assert_eq!(*track.get(&(0, 1)).unwrap(), TrackPiece::Straight(Axe::X));
-        assert!(track.contains_key(&(0, 3)));
-        assert_eq!(*track.get(&(0, 3)).unwrap(), TrackPiece::Straight(Axe::Y));
+        assert!(track.contains_key(&(1, 0)));
+        assert_eq!(*track.get(&(1, 0)).unwrap(), TrackPiece::Straight(Axe::X));
+        assert!(track.contains_key(&(3, 0)));
+        assert_eq!(*track.get(&(3, 0)).unwrap(), TrackPiece::Straight(Axe::Y));
         assert!(track.contains_key(&(1, 1)));
         assert_eq!(*track.get(&(1, 1)).unwrap(), TrackPiece::TurnLeft);
-        assert!(track.contains_key(&(1, 3)));
-        assert_eq!(*track.get(&(1, 3)).unwrap(), TrackPiece::TurnRight);
-        assert!(track.contains_key(&(2, 0)));
-        assert_eq!(*track.get(&(2, 0)).unwrap(), TrackPiece::Intersection);
+        assert!(track.contains_key(&(3, 1)));
+        assert_eq!(*track.get(&(3, 1)).unwrap(), TrackPiece::TurnRight);
+        assert!(track.contains_key(&(0, 2)));
+        assert_eq!(*track.get(&(0, 2)).unwrap(), TrackPiece::Intersection);
     }
 
     #[test]
@@ -131,12 +131,12 @@ mod tests {
 
         assert!(track.contains_key(&(0, 0)));
         assert_eq!(*track.get(&(0, 0)).unwrap(), TrackPiece::Straight(Axe::X));
-        assert!(track.contains_key(&(0, 1)));
-        assert_eq!(*track.get(&(0, 1)).unwrap(), TrackPiece::Straight(Axe::X));
-        assert!(track.contains_key(&(0, 2)));
-        assert_eq!(*track.get(&(0, 2)).unwrap(), TrackPiece::Straight(Axe::Y));
-        assert!(track.contains_key(&(0, 2)));
-        assert_eq!(*track.get(&(0, 2)).unwrap(), TrackPiece::Straight(Axe::Y));
+        assert!(track.contains_key(&(1, 0)));
+        assert_eq!(*track.get(&(1, 0)).unwrap(), TrackPiece::Straight(Axe::X));
+        assert!(track.contains_key(&(2, 0)));
+        assert_eq!(*track.get(&(2, 0)).unwrap(), TrackPiece::Straight(Axe::Y));
+        assert!(track.contains_key(&(3, 0)));
+        assert_eq!(*track.get(&(3, 0)).unwrap(), TrackPiece::Straight(Axe::Y));
 
         let cart = carts.get(0).expect("> cart");
         assert_eq!(cart.coord, (0, 0));
@@ -144,17 +144,17 @@ mod tests {
         assert_eq!(cart.direction, Direction::Up);
 
         let cart = carts.get(1).expect("< cart");
-        assert_eq!(cart.coord, (0, 1));
+        assert_eq!(cart.coord, (1, 0));
         assert_eq!(cart.axe, Axe::X);
         assert_eq!(cart.direction, Direction::Down);
 
         let cart = carts.get(2).expect("v cart");
-        assert_eq!(cart.coord, (0, 2));
+        assert_eq!(cart.coord, (2, 0));
         assert_eq!(cart.axe, Axe::Y);
         assert_eq!(cart.direction, Direction::Up);
 
         let cart = carts.get(3).expect("v cart");
-        assert_eq!(cart.coord, (0, 3));
+        assert_eq!(cart.coord, (3, 0));
         assert_eq!(cart.axe, Axe::Y);
         assert_eq!(cart.direction, Direction::Down);
     }
