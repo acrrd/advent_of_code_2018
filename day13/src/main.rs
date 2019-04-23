@@ -6,17 +6,27 @@ enum Axe {
     Y,
 }
 
+// Direction Up means that the coordinate will increase
+// while Down means that the coordinate will descrease
+// > and v are Up
+// < and ^ are Down
 #[derive(Debug, PartialEq)]
 enum Direction {
     Up,
     Down,
 }
 
+// Turn(Up) means that the direction is the same after the turn
+// >\ after the turn the direction is still Up
+//  v
+// Turn(Down) means that the direction will flip
+// /< after the turn the direction change from Down to Up Up
+// v
+//
 #[derive(Debug, PartialEq)]
 enum TrackPiece {
     Straight(Axe),
-    TurnLeft,
-    TurnRight,
+    Turn(Direction),
     Intersection,
 }
 
@@ -32,9 +42,9 @@ struct Cart {
 }
 
 const INTERSECTION_MOVE_ORDER: [TrackPiece; 3] = [
-    TrackPiece::TurnLeft,
+    TrackPiece::Turn(Direction::Down),
     TrackPiece::Straight(Axe::X),
-    TrackPiece::TurnRight,
+    TrackPiece::Turn(Direction::Up),
 ];
 
 impl Cart {
@@ -74,19 +84,16 @@ fn move_cart(track: &Track, cart: &mut Cart) {
     }
     let tile = tile;
 
-    match tile {
-        TrackPiece::TurnRight => {
-            cart.axe = invert_axe(&cart.axe);
-        }
-        TrackPiece::TurnLeft => {
-            cart.axe = invert_axe(&cart.axe);
+    if let TrackPiece::Turn(direction) = tile {
+        cart.axe = invert_axe(&cart.axe);
+
+        if let Direction::Down = direction {
             cart.direction = match cart.direction {
                 Direction::Up => Direction::Down,
                 Direction::Down => Direction::Up,
             }
         }
-        _ => (),
-    };
+    }
 }
 
 fn parse_track(input: &str) -> (Track, Vec<Cart>) {
@@ -130,10 +137,10 @@ fn parse_track(input: &str) -> (Track, Vec<Cart>) {
                         track.insert(coord, TrackPiece::Straight(Axe::Y));
                     }
                     '/' => {
-                        track.insert(coord, TrackPiece::TurnLeft);
+                        track.insert(coord, TrackPiece::Turn(Direction::Down));
                     }
                     '\\' => {
-                        track.insert(coord, TrackPiece::TurnRight);
+                        track.insert(coord, TrackPiece::Turn(Direction::Up));
                     }
                     '+' => {
                         track.insert(coord, TrackPiece::Intersection);
@@ -165,9 +172,9 @@ mod tests {
         assert!(track.contains_key(&(3, 0)));
         assert_eq!(*track.get(&(3, 0)).unwrap(), TrackPiece::Straight(Axe::Y));
         assert!(track.contains_key(&(1, 1)));
-        assert_eq!(*track.get(&(1, 1)).unwrap(), TrackPiece::TurnLeft);
+        assert_eq!(*track.get(&(1, 1)).unwrap(), TrackPiece::Turn(Direction::Down));
         assert!(track.contains_key(&(3, 1)));
-        assert_eq!(*track.get(&(3, 1)).unwrap(), TrackPiece::TurnRight);
+        assert_eq!(*track.get(&(3, 1)).unwrap(), TrackPiece::Turn(Direction::Up));
         assert!(track.contains_key(&(0, 2)));
         assert_eq!(*track.get(&(0, 2)).unwrap(), TrackPiece::Intersection);
     }
