@@ -69,15 +69,16 @@ fn move_cart(track: &Track, cart: &mut Cart) {
 
     if let TrackPiece::Intersection = tile {
         tile = &INTERSECTION_MOVE_ORDER[cart.next_intersection_move];
-        cart.next_intersection_move = cart.next_intersection_move + 1 % 3;
+        cart.next_intersection_move+=1;
+        cart.next_intersection_move%=3;
     }
     let tile = tile;
 
     match tile {
-        TrackPiece::TurnLeft => {
+        TrackPiece::TurnRight => {
             cart.axe = invert_axe(&cart.axe);
         }
-        TrackPiece::TurnRight => {
+        TrackPiece::TurnLeft => {
             cart.axe = invert_axe(&cart.axe);
             cart.direction = match cart.direction {
                 Direction::Up => Direction::Down,
@@ -214,23 +215,125 @@ mod tests {
         let cart = &mut carts[0];
         move_cart(&track, cart);
         assert_eq!(cart.coord, (1,0));
+        assert_eq!(cart.axe, Axe::X);
+        assert_eq!(cart.direction, Direction::Up);
 
         let input = "-<";
         let (track, mut carts) = parse_track(input);
         let cart = &mut carts[0];
         move_cart(&track, cart);
         assert_eq!(cart.coord, (0,0));
+        assert_eq!(cart.axe, Axe::X);
+        assert_eq!(cart.direction, Direction::Down);
 
         let input = "v\n|";
         let (track, mut carts) = parse_track(input);
         let cart = &mut carts[0];
         move_cart(&track, cart);
         assert_eq!(cart.coord, (0,1));
+        assert_eq!(cart.axe, Axe::Y);
+        assert_eq!(cart.direction, Direction::Up);
 
         let input = "|\n^";
         let (track, mut carts) = parse_track(input);
         let cart = &mut carts[0];
         move_cart(&track, cart);
         assert_eq!(cart.coord, (0,0));
+        assert_eq!(cart.axe, Axe::Y);
+        assert_eq!(cart.direction, Direction::Down);
+    }
+
+    #[test]
+    fn test_move_cart_turn() {
+        let input = ">/";
+        let (track, mut carts) = parse_track(input);
+        let cart = &mut carts[0];
+        move_cart(&track, cart);
+        assert_eq!(cart.coord, (1,0));
+        assert_eq!(cart.axe, Axe::Y);
+        assert_eq!(cart.direction, Direction::Down);
+
+        let input = "/<";
+        let (track, mut carts) = parse_track(input);
+        let cart = &mut carts[0];
+        move_cart(&track, cart);
+        assert_eq!(cart.coord, (0,0));
+        assert_eq!(cart.axe, Axe::Y);
+        assert_eq!(cart.direction, Direction::Up);
+
+        let input = ">\\";
+        let (track, mut carts) = parse_track(input);
+        let cart = &mut carts[0];
+        move_cart(&track, cart);
+        assert_eq!(cart.coord, (1,0));
+        assert_eq!(cart.axe, Axe::Y);
+        assert_eq!(cart.direction, Direction::Up);
+
+        let input = "\\<";
+        let (track, mut carts) = parse_track(input);
+        let cart = &mut carts[0];
+        move_cart(&track, cart);
+        assert_eq!(cart.coord, (0,0));
+        assert_eq!(cart.axe, Axe::Y);
+        assert_eq!(cart.direction, Direction::Down);
+
+        let input = "v\n/";
+        let (track, mut carts) = parse_track(input);
+        let cart = &mut carts[0];
+        move_cart(&track, cart);
+        assert_eq!(cart.coord, (0,1));
+        assert_eq!(cart.axe, Axe::X);
+        assert_eq!(cart.direction, Direction::Down);
+
+        let input = "/\n^";
+        let (track, mut carts) = parse_track(input);
+        let cart = &mut carts[0];
+        move_cart(&track, cart);
+        assert_eq!(cart.coord, (0,0));
+        assert_eq!(cart.axe, Axe::X);
+        assert_eq!(cart.direction, Direction::Up);
+
+        let input = "v\n\\";
+        let (track, mut carts) = parse_track(input);
+        let cart = &mut carts[0];
+        move_cart(&track, cart);
+        assert_eq!(cart.coord, (0,1));
+        assert_eq!(cart.axe, Axe::X);
+        assert_eq!(cart.direction, Direction::Up);
+
+        let input = "\\\n^";
+        let (track, mut carts) = parse_track(input);
+        let cart = &mut carts[0];
+        move_cart(&track, cart);
+        assert_eq!(cart.coord, (0,0));
+        assert_eq!(cart.axe, Axe::X);
+        assert_eq!(cart.direction, Direction::Down);
+    }
+
+    #[test]
+    fn test_move_cart_intersection() {
+        let input = "+<\n+\n++";
+        let (track, mut carts) = parse_track(input);
+        let cart = &mut carts[0];
+
+        move_cart(&track, cart);
+        assert_eq!(cart.coord, (0,0));
+        assert_eq!(cart.axe, Axe::Y);
+        assert_eq!(cart.direction, Direction::Up);
+
+        move_cart(&track, cart);
+        assert_eq!(cart.coord, (0,1));
+        assert_eq!(cart.axe, Axe::Y);
+        assert_eq!(cart.direction, Direction::Up);
+
+        move_cart(&track, cart);
+        assert_eq!(cart.coord, (0,2));
+        assert_eq!(cart.axe, Axe::X);
+        assert_eq!(cart.direction, Direction::Up);
+
+        move_cart(&track, cart);
+        assert_eq!(cart.coord, (1,2));
+        assert_eq!(cart.axe, Axe::Y);
+        assert_eq!(cart.direction, Direction::Down);
     }
 }
