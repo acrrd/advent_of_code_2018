@@ -41,10 +41,16 @@ struct Cart {
     next_intersection_move: usize,
 }
 
-const INTERSECTION_MOVE_ORDER: [TrackPiece; 3] = [
-    TrackPiece::Turn(Direction::Down),
-    TrackPiece::Straight(Axe::X),
-    TrackPiece::Turn(Direction::Up),
+enum IntersectionMove {
+    Straight,
+    TurnLeft,
+    TurnRight,
+}
+
+const INTERSECTION_MOVE_ORDER: [IntersectionMove; 3] = [
+    IntersectionMove::TurnLeft,
+    IntersectionMove::Straight,
+    IntersectionMove::TurnRight,
 ];
 
 impl Cart {
@@ -76,12 +82,27 @@ fn move_cart(track: &Track, cart: &mut Cart) {
     };
 
     let mut tile = track.get(&cart.coord).expect("Malformed track");
+    let intersection_tile: TrackPiece;
 
     if let TrackPiece::Intersection = tile {
-        tile = &INTERSECTION_MOVE_ORDER[cart.next_intersection_move];
-        cart.next_intersection_move+=1;
-        cart.next_intersection_move%=3;
-    }
+        intersection_tile = match INTERSECTION_MOVE_ORDER[cart.next_intersection_move] {
+            // we dont care about the axe of the straight
+            IntersectionMove::Straight => TrackPiece::Straight(Axe::X),
+            IntersectionMove::TurnLeft => TrackPiece::Turn(match cart.axe {
+                Axe::X => Direction::Down,
+                Axe::Y => Direction::Up,
+            }),
+            IntersectionMove::TurnRight => TrackPiece::Turn(match cart.axe {
+                Axe::X => Direction::Up,
+                Axe::Y => Direction::Down,
+            }),
+        };
+        tile = &intersection_tile;
+
+        cart.next_intersection_move += 1;
+        cart.next_intersection_move %= 3;
+    };
+
     let tile = tile;
 
     if let TrackPiece::Turn(direction) = tile {
