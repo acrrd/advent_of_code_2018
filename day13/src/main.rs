@@ -174,13 +174,42 @@ fn parse_track(input: &str) -> (Track, Vec<Cart>) {
         )
 }
 
+fn simulate_till_crash(track: &Track, mut carts: Vec<Cart>) -> Coord {
+    let mut coords_to_idx =
+        carts
+            .iter()
+            .enumerate()
+            .fold(HashMap::new(), |mut coords_to_idx, (idx, cart)| {
+                coords_to_idx.insert(cart.coord, idx);
+                coords_to_idx
+            });
+
+
+    loop {
+
+        carts.sort_unstable_by_key(|cart| cart.coord);
+
+        for (idx, mut cart) in carts.iter_mut().enumerate() {
+            coords_to_idx.remove(&cart.coord);
+
+            move_cart(&track, &mut cart);
+            // detect crash
+            if coords_to_idx.contains_key(&cart.coord) {
+                return cart.coord;
+            }
+
+            coords_to_idx.insert(cart.coord, idx);
+        }
+    }
+}
+
 fn main() {
     println!("Hello, world!");
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{move_cart, parse_track, Axe, Direction, TrackPiece};
+    use super::{move_cart, parse_track, simulate_till_crash, Axe, Direction, TrackPiece};
 
     #[test]
     fn test_parse_track_pieces() {
@@ -193,9 +222,15 @@ mod tests {
         assert!(track.contains_key(&(3, 0)));
         assert_eq!(*track.get(&(3, 0)).unwrap(), TrackPiece::Straight(Axe::Y));
         assert!(track.contains_key(&(1, 1)));
-        assert_eq!(*track.get(&(1, 1)).unwrap(), TrackPiece::Turn(Direction::Down));
+        assert_eq!(
+            *track.get(&(1, 1)).unwrap(),
+            TrackPiece::Turn(Direction::Down)
+        );
         assert!(track.contains_key(&(3, 1)));
-        assert_eq!(*track.get(&(3, 1)).unwrap(), TrackPiece::Turn(Direction::Up));
+        assert_eq!(
+            *track.get(&(3, 1)).unwrap(),
+            TrackPiece::Turn(Direction::Up)
+        );
         assert!(track.contains_key(&(0, 2)));
         assert_eq!(*track.get(&(0, 2)).unwrap(), TrackPiece::Intersection);
     }
@@ -242,7 +277,7 @@ mod tests {
         let (track, mut carts) = parse_track(input);
         let cart = &mut carts[0];
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (1,0));
+        assert_eq!(cart.coord, (1, 0));
         assert_eq!(cart.axe, Axe::X);
         assert_eq!(cart.direction, Direction::Up);
 
@@ -250,7 +285,7 @@ mod tests {
         let (track, mut carts) = parse_track(input);
         let cart = &mut carts[0];
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (0,0));
+        assert_eq!(cart.coord, (0, 0));
         assert_eq!(cart.axe, Axe::X);
         assert_eq!(cart.direction, Direction::Down);
 
@@ -258,7 +293,7 @@ mod tests {
         let (track, mut carts) = parse_track(input);
         let cart = &mut carts[0];
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (0,1));
+        assert_eq!(cart.coord, (0, 1));
         assert_eq!(cart.axe, Axe::Y);
         assert_eq!(cart.direction, Direction::Up);
 
@@ -266,7 +301,7 @@ mod tests {
         let (track, mut carts) = parse_track(input);
         let cart = &mut carts[0];
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (0,0));
+        assert_eq!(cart.coord, (0, 0));
         assert_eq!(cart.axe, Axe::Y);
         assert_eq!(cart.direction, Direction::Down);
     }
@@ -277,7 +312,7 @@ mod tests {
         let (track, mut carts) = parse_track(input);
         let cart = &mut carts[0];
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (1,0));
+        assert_eq!(cart.coord, (1, 0));
         assert_eq!(cart.axe, Axe::Y);
         assert_eq!(cart.direction, Direction::Down);
 
@@ -285,7 +320,7 @@ mod tests {
         let (track, mut carts) = parse_track(input);
         let cart = &mut carts[0];
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (0,0));
+        assert_eq!(cart.coord, (0, 0));
         assert_eq!(cart.axe, Axe::Y);
         assert_eq!(cart.direction, Direction::Up);
 
@@ -293,7 +328,7 @@ mod tests {
         let (track, mut carts) = parse_track(input);
         let cart = &mut carts[0];
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (1,0));
+        assert_eq!(cart.coord, (1, 0));
         assert_eq!(cart.axe, Axe::Y);
         assert_eq!(cart.direction, Direction::Up);
 
@@ -301,7 +336,7 @@ mod tests {
         let (track, mut carts) = parse_track(input);
         let cart = &mut carts[0];
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (0,0));
+        assert_eq!(cart.coord, (0, 0));
         assert_eq!(cart.axe, Axe::Y);
         assert_eq!(cart.direction, Direction::Down);
 
@@ -309,7 +344,7 @@ mod tests {
         let (track, mut carts) = parse_track(input);
         let cart = &mut carts[0];
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (0,1));
+        assert_eq!(cart.coord, (0, 1));
         assert_eq!(cart.axe, Axe::X);
         assert_eq!(cart.direction, Direction::Down);
 
@@ -317,7 +352,7 @@ mod tests {
         let (track, mut carts) = parse_track(input);
         let cart = &mut carts[0];
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (0,0));
+        assert_eq!(cart.coord, (0, 0));
         assert_eq!(cart.axe, Axe::X);
         assert_eq!(cart.direction, Direction::Up);
 
@@ -325,7 +360,7 @@ mod tests {
         let (track, mut carts) = parse_track(input);
         let cart = &mut carts[0];
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (0,1));
+        assert_eq!(cart.coord, (0, 1));
         assert_eq!(cart.axe, Axe::X);
         assert_eq!(cart.direction, Direction::Up);
 
@@ -333,7 +368,7 @@ mod tests {
         let (track, mut carts) = parse_track(input);
         let cart = &mut carts[0];
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (0,0));
+        assert_eq!(cart.coord, (0, 0));
         assert_eq!(cart.axe, Axe::X);
         assert_eq!(cart.direction, Direction::Down);
     }
@@ -354,7 +389,7 @@ mod tests {
         let cart = &mut carts[0];
 
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (0,0));
+        assert_eq!(cart.coord, (0, 0));
         assert_eq!(cart.axe, Axe::Y);
         assert_eq!(cart.direction, Direction::Up);
 
@@ -399,5 +434,31 @@ mod tests {
         assert_eq!(cart.coord, (2,2));
         assert_eq!(cart.axe, Axe::X);
         assert_eq!(cart.direction, Direction::Up);
+    }
+
+    #[test]
+    fn test_simulate_example_straight() {
+        let input = "->---<-";
+        let (track, carts) = parse_track(input);
+        let crash_coord = simulate_till_crash(&track, carts);
+        assert_eq!(crash_coord, (3, 0));
+
+        let input = "|\nv\n|\n|\n|\n^\n|";
+        let (track, carts) = parse_track(input);
+        let crash_coord = simulate_till_crash(&track, carts);
+        assert_eq!(crash_coord, (0, 3));
+    }
+
+    #[test]
+    fn test_simulate_example_complext() {
+        let input = "/->-\\        \n\
+                     |   |  /----\\\n\
+                     | /-+--+-\\  |\n\
+                     | | |  | v  |\n\
+                     \\-+-/  \\-+--/\n\
+                        \\------/   ";
+        let (track, carts) = parse_track(input);
+        let crash_coord = simulate_till_crash(&track, carts);
+        assert_eq!(crash_coord, (7, 3));
     }
 }
