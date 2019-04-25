@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::{self, Read};
 
 #[derive(Debug, PartialEq)]
 enum Axe {
@@ -184,9 +185,7 @@ fn simulate_till_crash(track: &Track, mut carts: Vec<Cart>) -> Coord {
                 coords_to_idx
             });
 
-
     loop {
-
         carts.sort_unstable_by_key(|cart| cart.coord);
 
         for (idx, mut cart) in carts.iter_mut().enumerate() {
@@ -203,8 +202,17 @@ fn simulate_till_crash(track: &Track, mut carts: Vec<Cart>) -> Coord {
     }
 }
 
-fn main() {
-    println!("Hello, world!");
+fn main() -> io::Result<()> {
+    let mut input = String::new();
+    std::io::stdin().read_to_string(&mut input)?;
+    let input = input;
+
+    let (track, carts) = parse_track(&input);
+    let crash_coord = simulate_till_crash(&track, carts);
+
+    println!("{:?}", crash_coord);
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -380,7 +388,7 @@ mod tests {
         let cart = &mut carts[0];
 
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (1,0));
+        assert_eq!(cart.coord, (1, 0));
         assert_eq!(cart.axe, Axe::Y);
         assert_eq!(cart.direction, Direction::Down);
 
@@ -398,7 +406,7 @@ mod tests {
         let cart = &mut carts[0];
 
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (0,1));
+        assert_eq!(cart.coord, (0, 1));
         assert_eq!(cart.axe, Axe::X);
         assert_eq!(cart.direction, Direction::Up);
 
@@ -407,7 +415,7 @@ mod tests {
         let cart = &mut carts[0];
 
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (0,0));
+        assert_eq!(cart.coord, (0, 0));
         assert_eq!(cart.axe, Axe::X);
         assert_eq!(cart.direction, Direction::Down);
 
@@ -416,22 +424,22 @@ mod tests {
         let cart = &mut carts[0];
 
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (0,1));
+        assert_eq!(cart.coord, (0, 1));
         assert_eq!(cart.axe, Axe::X);
         assert_eq!(cart.direction, Direction::Up);
 
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (1,1));
+        assert_eq!(cart.coord, (1, 1));
         assert_eq!(cart.axe, Axe::X);
         assert_eq!(cart.direction, Direction::Up);
 
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (2,1));
+        assert_eq!(cart.coord, (2, 1));
         assert_eq!(cart.axe, Axe::Y);
         assert_eq!(cart.direction, Direction::Up);
 
         move_cart(&track, cart);
-        assert_eq!(cart.coord, (2,2));
+        assert_eq!(cart.coord, (2, 2));
         assert_eq!(cart.axe, Axe::X);
         assert_eq!(cart.direction, Direction::Up);
     }
@@ -456,7 +464,7 @@ mod tests {
                      | /-+--+-\\  |\n\
                      | | |  | v  |\n\
                      \\-+-/  \\-+--/\n\
-                        \\------/   ";
+                     \\------/   ";
         let (track, carts) = parse_track(input);
         let crash_coord = simulate_till_crash(&track, carts);
         assert_eq!(crash_coord, (7, 3));
