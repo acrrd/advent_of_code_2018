@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::io::{self, Read};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum Axe {
     X,
     Y,
@@ -11,7 +11,7 @@ enum Axe {
 // while Down means that the coordinate will descrease
 // > and v are Up
 // < and ^ are Down
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum Direction {
     Up,
     Down,
@@ -34,7 +34,7 @@ enum TrackPiece {
 type Coord = (usize, usize);
 type Track = HashMap<Coord, TrackPiece>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Cart {
     coord: Coord,
     axe: Axe,
@@ -202,22 +202,71 @@ fn simulate_till_crash(track: &Track, mut carts: Vec<Cart>) -> Coord {
     }
 }
 
+fn simulate_till_one_stand(track: &Track, mut carts: Vec<Cart>) -> Coord {
+    loop {
+        if carts.len() == 1 {
+            return carts[0].coord;
+        }
+
+        let mut coords_to_idx =
+            carts
+                .iter()
+                .enumerate()
+                .fold(HashMap::new(), |mut coords_to_idx, (idx, cart)| {
+                    coords_to_idx.insert(cart.coord, idx);
+                    coords_to_idx
+                });
+
+        carts.sort_unstable_by_key(|cart| cart.coord);
+        let mut to_remove: Vec<usize> = Vec::with_capacity(carts.len());
+
+        for (idx, mut cart) in carts.iter_mut().enumerate() {
+            coords_to_idx.remove(&cart.coord);
+
+            move_cart(&track, &mut cart);
+            // detect crash
+            let crash_cart_idx = coords_to_idx.get(&cart.coord);
+            if let Some(&crash_idx) = crash_cart_idx {
+                to_remove.push(idx);
+                to_remove.push(crash_idx);
+                coords_to_idx.remove(&cart.coord);
+            } else {
+                coords_to_idx.insert(cart.coord, idx);
+            }
+        }
+
+        to_remove.sort_unstable();
+        let mut offset = 0;
+        to_remove.iter().for_each(|&idx| {
+            carts.remove(idx - offset);
+            offset += 1;
+        });
+    }
+}
+
 fn main() -> io::Result<()> {
     let mut input = String::new();
     std::io::stdin().read_to_string(&mut input)?;
     let input = input;
 
     let (track, carts) = parse_track(&input);
-    let crash_coord = simulate_till_crash(&track, carts);
+    let crash_coord = simulate_till_crash(&track, carts.clone());
 
     println!("{:?}", crash_coord);
+
+    let last_cart_coord = simulate_till_one_stand(&track, carts);
+
+    println!("{:?}", last_cart_coord);
 
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{move_cart, parse_track, simulate_till_crash, Axe, Direction, TrackPiece};
+    use super::{
+        move_cart, parse_track, simulate_till_crash, simulate_till_one_stand, Axe, Direction,
+        TrackPiece,
+    };
 
     #[test]
     fn test_parse_track_pieces() {
@@ -468,5 +517,13 @@ mod tests {
         let (track, carts) = parse_track(input);
         let crash_coord = simulate_till_crash(&track, carts);
         assert_eq!(crash_coord, (7, 3));
+    }
+
+    #[test]
+    fn test_simulate_till_one_stand_example() {
+        let input = "/>-<\\\n|   |\n| /<+-\\\n| | | v\n\\>+</ |\n  |   ^\n  \\<->/";
+        let (track, carts) = parse_track(input);
+        let crash_coord = simulate_till_one_stand(&track, carts);
+        assert_eq!(crash_coord, (6, 4));
     }
 }
